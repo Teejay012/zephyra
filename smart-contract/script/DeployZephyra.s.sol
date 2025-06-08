@@ -1,0 +1,44 @@
+// SPDX-License-Identifier: MIT
+
+pragma solidity 0.8.24;
+
+import {Script} from "forge-std/Script.sol";
+
+import {ZephyraStableCoin} from "src/ZephyraStableCoin.sol";
+import {ZephyraVault} from "src/ZephyraVault.sol";
+import {IZephyraStableCoin} from "src/interface/IZephyraStableCoin.sol";
+import { HelperConfig } from "script/HelperConfig.s.sol";
+
+contract DeployZephyra is Script {
+
+    address[] private collateralTokens;
+    address[] private collateralTokensPriceFeeds;
+
+    uint256 private constant INITIAL_SUPPLY = 1_000_000 * 10 ** 18; // 1 million tokens with 18 decimals
+
+    function run() external returns (ZephyraStableCoin, ZephyraVault, HelperConfig) {
+         HelperConfig config = new HelperConfig();
+        (
+            address wethUsdPriceFeed,
+            address wbtcUsdPriceFeed,
+            address weth,
+            address wbtc,
+            uint256 deployerKey
+            // address owner
+        ) = config.activeNetworkConfig();
+
+        collateralTokens = [weth, wbtc];
+        collateralTokensPriceFeeds = [wethUsdPriceFeed, wbtcUsdPriceFeed];
+
+        vm.startBroadcast(deployerKey);
+        ZephyraStableCoin zusd = new ZephyraStableCoin(INITIAL_SUPPLY);
+        ZephyraVault vault = new ZephyraVault(
+            IZephyraStableCoin(address(zusd)),
+            collateralTokens,
+            collateralTokensPriceFeeds
+        );
+        zusd.transferOwnership(address(vault));
+        vm.stopBroadcast();
+        return (zusd, vault, config);
+    }
+}
