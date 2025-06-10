@@ -37,7 +37,7 @@ contract ZephyraIntegrationTest is Test {
 
     function setUp() public {
         deployer = new DeployZephyra();
-        (zusd, vault, config) = deployer.run();
+        (zusd, vault, config, ,) = deployer.run();
         (ethUsdPriceFeed, btcUsdPriceFeed, weth, , ) = config.activeNetworkConfig();
         ERC20Mock(weth).mint(USER, STARTING_BALANCE);
         ERC20Mock(weth).mint(LIQUIDATOR, LIQUIDATOR_BALANCE);
@@ -426,6 +426,12 @@ contract ZephyraIntegrationTest is Test {
         vm.expectRevert(ZephyraVault.ZephyraVault__TransferFailed.selector);
         vault.redeemCollateral(weth, collateralBalance);
         vm.stopPrank();
+    }
+
+    function testAnyoneCantMintWithoutCollateral() public {
+        vm.prank(USER);
+        vm.expectRevert();
+        vault.mintZusd(100e18);
     }
 
 }

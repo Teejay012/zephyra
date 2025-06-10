@@ -33,6 +33,15 @@ import { AggregatorV3Interface } from "lib/chainlink-brownie-contracts/contracts
  * for minting and redeeming ZUSD, as well as depositing and withdrawing collateral.
  */
 
+
+// Additional stuffs to change, liquidators can only get the zusd + 10% amount in their collateral value 
+// to make the protocol fair, if not users can just borrow and create new wallet to liquidate and and 
+// get the the prev account collateral value + 10%, which is bad.
+
+// And also automation that liquidates undercollateralized users if nobody liquidates them
+
+// I want to also push users and their info to an array to get them in my frontend
+
 contract ZephyraVault is ReentrancyGuard {
 
     // ══════════════════════════════════════════
