@@ -6,8 +6,8 @@ import {Script, console} from "forge-std/Script.sol";
 
 import {ZephyraStableCoin} from "src/ZephyraStableCoin.sol";
 import {ZephyraVault} from "src/ZephyraVault.sol";
-import {ZephyraSender} from "src/learn-crross-chain/ZephyraSender.sol";
-import {ZephyraReceiver} from "src/learn-crross-chain/ZephyraReceiver.sol";
+import {ZephyraSender} from "src/learn-cross-chain/ZephyraSender.sol";
+import {ZephyraReceiver} from "src/learn-cross-chain/ZephyraReceiver.sol";
 import {IZephyraStableCoin} from "src/interface/IZephyraStableCoin.sol";
 import { HelperConfig } from "script/HelperConfig.s.sol";
 
