@@ -9,6 +9,7 @@ import { OracleLib } from "./libraries/OracleLib.sol";
 // OpenZeppelin Imports
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 
 // Chainlink Imports
@@ -34,15 +35,8 @@ import { AggregatorV3Interface } from "lib/chainlink-brownie-contracts/contracts
  */
 
 
-// Additional stuffs to change, liquidators can only get the zusd + 10% amount in their collateral value 
-// to make the protocol fair, if not users can just borrow and create new wallet to liquidate and and 
-// get the the prev account collateral value + 10%, which is bad.
 
-// And also automation that liquidates undercollateralized users if nobody liquidates them
-
-// I want to also push users and their info to an array to get them in my frontend
-
-contract ZephyraVault is ReentrancyGuard {
+contract ZephyraVault is Ownable, ReentrancyGuard {
 
     // ══════════════════════════════════════════
     // ══ ERRORS
@@ -77,6 +71,9 @@ contract ZephyraVault is ReentrancyGuard {
     // ══════════════════════════════════════════
     // ══ STATE VARIABLES
     // ══════════════════════════════════════════
+
+    address[] private users;
+
     IZephyraStableCoin private immutable i_zusd;
 
     address[] private s_collateralTokenAddresses;
@@ -85,12 +82,16 @@ contract ZephyraVault is ReentrancyGuard {
     mapping(address user => mapping(address token => uint256 amount)) private s_userToTokenDeposits;
     mapping(address user => uint256 zusdBalance) private s_userToZusdBalance;
 
+    mapping(address user => bool isAdded) private s_userAdded;
+
     uint256 private constant MIN_HEALTH_FACTOR = 1e18; // 1.0 in 18 decimals
     uint256 private constant PRECISION = 1e18;
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
     uint256 private constant LIQUIDATION_THRESHOLD = 50; // 50% liquidation threshold
     uint256 private constant LIQUIDATION_PRECISION = 100;
     uint256 private constant LIQUIDATION_BONUS = 10;
+
+    uint256 private s_zusdGains;
 
     // ══════════════════════════════════════════
     // ══ EVENTS
@@ -126,7 +127,7 @@ contract ZephyraVault is ReentrancyGuard {
     // ══ CONSTRUCTOR
     // ══════════════════════════════════════════
 
-    constructor(IZephyraStableCoin _zusd, address[] memory _collateralTokenAddresses, address[] memory _priceFeeds) {
+    constructor(IZephyraStableCoin _zusd, address[] memory _collateralTokenAddresses, address[] memory _priceFeeds) Ownable(msg.sender) {
         if(_collateralTokenAddresses.length != _priceFeeds.length) {
             revert ZephyraVault__CollateralTokenAndPricefeedMismatch();
         }
@@ -161,6 +162,10 @@ contract ZephyraVault is ReentrancyGuard {
         mintZusd(_zusdAmount);
     }
 
+
+
+
+
     function depositCollateral(address _collateralTokenAddress, uint256 _amount) 
         public 
         moreThanZero(_amount)
@@ -178,6 +183,12 @@ contract ZephyraVault is ReentrancyGuard {
 
         emit CollateralDeposited(msg.sender, _collateralTokenAddress, _amount);
 
+        // Check if the user is already added to the users array
+        if (!s_userAdded[msg.sender]) {
+            users.push(msg.sender);
+            s_userAdded[msg.sender] = true;
+        }
+
         bool success = IERC20(_collateralTokenAddress).transferFrom(
             msg.sender,
             address(this),
@@ -188,6 +199,16 @@ contract ZephyraVault is ReentrancyGuard {
             revert ZephyraVault__TransferFailed();
         }
     }
+
+
+
+
+
+
+
+
+
+
 
     function redeemCollateralForZusd(address _collateralTokenAddress, uint256 _zusdAmount) 
         external 
@@ -216,6 +237,15 @@ contract ZephyraVault is ReentrancyGuard {
         _revertIfHealthFactorIsBroken(msg.sender);
     }
 
+
+
+
+
+
+
+
+
+
     function mintZusd(uint256 _amount) public moreThanZero(_amount) nonReentrant {
         s_userToZusdBalance[msg.sender] += _amount;
 
@@ -229,11 +259,24 @@ contract ZephyraVault is ReentrancyGuard {
         }
     }
 
+
+
+
+
+
+
+
     function burnZusd(uint256 _amount) public moreThanZero(_amount) nonReentrant {
         _burnZusd(_amount, msg.sender, msg.sender);
 
         _revertIfHealthFactorIsBroken(msg.sender);
     }
+
+
+    
+
+
+
 
     function liquidate(address _collateralTokenAddress, address _user, uint256 _debtToCover) 
         public 
@@ -257,14 +300,21 @@ contract ZephyraVault is ReentrancyGuard {
         uint256 bonusCollateral = (tokenAmountFromDebtCovered * LIQUIDATION_BONUS) / LIQUIDATION_PRECISION;
         uint256 totalCollateralToRedeem = tokenAmountFromDebtCovered + bonusCollateral;
 
-        s_userToTokenDeposits[msg.sender][_collateralTokenAddress] += totalCollateralToRedeem;
+        uint256 userCollateralBalance = s_userToTokenDeposits[_user][_collateralTokenAddress];
+        uint256 remainingCollateralBalance = userCollateralBalance - totalCollateralToRedeem;
+
+        uint256 zusdGains = getUsdValue(_collateralTokenAddress, remainingCollateralBalance);
+
+        s_zusdGains += remainingCollateralBalance;
+
+        // s_userToTokenDeposits[msg.sender][_collateralTokenAddress] += totalCollateralToRedeem; // Error, adding collateral after transfering the amount
 
         if(s_userToZusdBalance[_user] < _debtToCover) {
             revert ZephyraVault__DebtToCoverShouldNotBeGreaterThanBalance();
         }
 
         _burnZusd(_debtToCover, _user, msg.sender);
-        _redeemCollateralWithBonus(_collateralTokenAddress, totalCollateralToRedeem, _debtToCover, _user, msg.sender);
+        _redeemCollateralWithBonus(_collateralTokenAddress, totalCollateralToRedeem, _user, msg.sender);
 
         uint256 endingHealthFactor = _healthFactor(_user);
         if(endingHealthFactor < startingHealthFactor){
@@ -273,6 +323,68 @@ contract ZephyraVault is ReentrancyGuard {
 
         _revertIfHealthFactorIsBroken(_user);
     }
+
+
+
+
+    function swapZusdToCollateral(address _collateralTokenAddress, uint256 _zusdAmount) 
+        external 
+        moreThanZero(_zusdAmount) 
+        approvedCollateralToken(_collateralTokenAddress) 
+        nonReentrant 
+    {
+        if (s_userToZusdBalance[msg.sender] < _zusdAmount) {
+            revert ZephyraVault__InsufficientBalance();
+        }
+
+        uint256 collateralAmount = getTokenAmountFromUsd(_collateralTokenAddress, _zusdAmount);
+
+        s_userToZusdBalance[msg.sender] -= _zusdAmount;
+        s_userToTokenDeposits[msg.sender][_collateralTokenAddress] += collateralAmount;
+
+        emit CollateralDeposited(msg.sender, _collateralTokenAddress, collateralAmount);
+
+        bool success = i_zusd.transferFrom(msg.sender, address(this), _zusdAmount);
+
+        if (!success) {
+            revert ZephyraVault__TransferFailed();
+        }
+
+        i_zusd.burn(_zusdAmount);
+
+    }
+
+
+
+
+
+
+    function withdrawGains(address _to) external onlyOwner nonReentrant {
+        if (_to == address(0)) {
+            revert ZephyraVault__InvalidAddress();
+        }
+        if (s_zusdGains == 0) {
+            revert ZephyraVault__InsufficientBalance();
+        }
+
+        s_zusdGains = 0;
+
+        bool success = i_zusd.transfer(_to, s_zusdGains);
+
+        if (!success) {
+            revert ZephyraVault__TransferFailed();
+        }
+
+    }
+
+
+
+
+
+
+
+
+
 
     // ══════════════════════════════════════════
     // ══ INTERNAL FUNCTIONS
@@ -335,7 +447,7 @@ contract ZephyraVault is ReentrancyGuard {
         }
     }
 
-    function _redeemCollateralWithBonus(address _tokenCollateralAddress, uint256 _collateralAmount, uint256 _zusdDebtToCover, address _from, address _to) internal moreThanZero(_collateralAmount) approvedCollateralToken(_tokenCollateralAddress) {
+    function _redeemCollateralWithBonus(address _tokenCollateralAddress, uint256 _collateralAmount, address _from, address _to) internal moreThanZero(_collateralAmount) approvedCollateralToken(_tokenCollateralAddress) {
         if (_from == address(0) || _to == address(0)) {
             revert ZephyraVault__InvalidAddress();
         }
@@ -343,17 +455,16 @@ contract ZephyraVault is ReentrancyGuard {
             revert ZephyraVault__InsufficientCollateral();
         }
 
-        uint256 collateralValueFromUsd = getTokenAmountFromUsd(_tokenCollateralAddress, _zusdDebtToCover);
 
-        if (s_userToTokenDeposits[_from][_tokenCollateralAddress] < collateralValueFromUsd) {
+        if (s_userToTokenDeposits[_from][_tokenCollateralAddress] < _collateralAmount) {
             revert ZephyraVault__InsufficientCollateral();
         }
         
         s_userToTokenDeposits[_from][_tokenCollateralAddress] = 0;
 
-        emit collateralRedeemed(_from, _to, _tokenCollateralAddress, collateralValueFromUsd);
+        emit collateralRedeemed(_from, _to, _tokenCollateralAddress, _collateralAmount);
 
-        bool success = IERC20(_tokenCollateralAddress).transfer(_to, collateralValueFromUsd);
+        bool success = IERC20(_tokenCollateralAddress).transfer(_to, _collateralAmount);
 
         if (!success) {
             revert ZephyraVault__TransferFailed();
@@ -437,17 +548,25 @@ contract ZephyraVault is ReentrancyGuard {
         return s_userToTokenDeposits[_user][_token];
     }
 
+    function getZusdGains() external view returns (uint256) {
+        return s_zusdGains;
+    }
+
+    function getUsers() external view returns (address[] memory) {
+        return users;
+    }
+
 
     // ══════════════════════════════════════════
     // ══ TESTING FUNCTIONS
     // ══════════════════════════════════════════
 
     // They'll be commented out before deployment
-    // function updateUserCollateralPrice(address _collateral, address _user, uint256 _amount) public {
-    //     s_userToTokenDeposits[_user][_collateral] = _amount;
-    // }
+    function updateUserCollateralPrice(address _collateral, address _user, uint256 _amount) public {
+        s_userToTokenDeposits[_user][_collateral] = _amount;
+    }
 
-    // function updateMintedValue(address _user, uint256 _amount) public {
-    //     s_userToZusdBalance[_user] = _amount;
-    // }
+    function updateMintedValue(address _user, uint256 _amount) public {
+        s_userToZusdBalance[_user] = _amount;
+    }
 }

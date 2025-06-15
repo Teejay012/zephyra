@@ -434,4 +434,77 @@ contract ZephyraIntegrationTest is Test {
         vault.mintZusd(100e18);
     }
 
+
+
+    // /////////////////////////////////////////////////
+
+
+
+
+
+    function testIfdscGainedAccumulated() public depositCollateralAndMintZusd {
+        // Update the user minted zusd balance
+
+        uint256 updatedZusdAmount = vault.getUsdValue(weth, 7 ether);
+        vault.updateMintedValue(USER, updatedZusdAmount);
+
+        // Liquidate
+        vm.startPrank(LIQUIDATOR);
+        uint256 zusdAmount = vault.getMintedZusd(USER);
+        ERC20Mock(weth).approve(address(vault), LIQUIDATOR_BALANCE);
+        vault.depositCollateral(weth, LIQUIDATOR_BALANCE);
+        vault.mintZusd(zusdAmount);
+        zusd.approve(address(vault), zusdAmount);
+        vault.liquidate(weth, USER, zusdAmount);
+
+        assertGt(vault.getZusdGains(), 0, "Liquidator should have gained dsc");
+        vm.stopPrank();
+    }
+
+
+    function testOnlyOwnerCanWithdrawGains() public depositCollateralAndMintZusd {
+        // Update the user minted zusd balance
+
+        uint256 updatedZusdAmount = vault.getUsdValue(weth, 7 ether);
+        vault.updateMintedValue(USER, updatedZusdAmount);
+
+        // Liquidate
+        vm.startPrank(LIQUIDATOR);
+        uint256 zusdAmount = vault.getMintedZusd(USER);
+        ERC20Mock(weth).approve(address(vault), LIQUIDATOR_BALANCE);
+        vault.depositCollateral(weth, LIQUIDATOR_BALANCE);
+        vault.mintZusd(zusdAmount);
+        zusd.approve(address(vault), zusdAmount);
+        vault.liquidate(weth, USER, zusdAmount);
+
+        vm.stopPrank();
+
+        // Withdraw gains as owner
+        address actualOwner = vault.owner(); // Assuming zusd inherits Ownable
+        vm.startPrank(actualOwner);
+        vault.withdrawGains(USER);
+        assertGt(zusd.balanceOf(USER), vault.getZusdGains(), "Owner should have withdrawn gains");
+        assertEq(vault.getZusdGains(), 0, "Vault should have no gains left after withdrawal");
+        vm.stopPrank();
+    }
+
+
+    function testSwapZusdToCollateral() public depositCollateralAndMintZusd {
+        vm.startPrank(USER);
+        uint256 userCollateralBalanceBefore = vault.getUserCollateralBalance(USER, weth);
+        uint256 zusdAmount = vault.getUsdValue(weth, MINT_AMOUNT);
+
+        // Swap zusd to collateral
+        zusd.approve(address(vault), zusdAmount);
+        vault.swapZusdToCollateral(weth, zusdAmount);
+
+        uint256 zusdAmountToCollateralAmount = vault.getTokenAmountFromUsd(weth, zusdAmount);
+
+        uint256 userCollateralBalanceAfter = vault.getUserCollateralBalance(USER, weth);
+
+        assertEq(userCollateralBalanceAfter, userCollateralBalanceBefore + zusdAmountToCollateralAmount, "User should have collateral after swap");
+        assertEq(zusd.balanceOf(USER), 0, "User zusd balance should be zero after swap");
+        vm.stopPrank();
+    }
+
 }

@@ -9,6 +9,7 @@ const navLinks = [
   { label: 'Deposit Collateral $ Mint ZUSD', href: '/dashboard/deposit-mint' },
   { label: 'Deposit Collateral', href: '/dashboard/deposit' },
   { label: 'Mint ZUSD', href: '/dashboard/mint' },
+  { label: 'Swap ZUSD', href: '/dashboard/swap' },
   { label: 'Repay ZUSD', href: '/dashboard/repay' },
   { label: 'Redeem Collateral', href: '/dashboard/redeem' },
   { label: 'NFT Perks', href: '/dashboard/nfts' },
@@ -25,7 +26,7 @@ export default function DashboardLayout({ children }) {
       <header className="sticky top-19 z-40 bg-[#2B1E5E]/90 backdrop-blur-md border-b border-[#475569]/30">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           {/* Logo or Brand */}
-          <h1 className="text-xl font-bold text-[#00C0FF]">Dashboard</h1>
+          <h1 className="text-xl font-bold text-[#00C0FF]">🏦</h1>
 
           {/* Hamburger Button for Mobile */}
           <button
@@ -45,7 +46,7 @@ export default function DashboardLayout({ children }) {
           </button>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex gap-4 items-center">
+          <nav className="hidden md:flex gap-2 items-center">
             {navLinks.map(({ label, href }) => {
               const isActive = pathname === href;
               return (
