@@ -562,11 +562,12 @@ contract ZephyraVault is Ownable, ReentrancyGuard {
     // ══════════════════════════════════════════
 
     // They'll be commented out before deployment
-    function updateUserCollateralPrice(address _collateral, address _user, uint256 _amount) public {
-        s_userToTokenDeposits[_user][_collateral] = _amount;
-    }
+    
+    // function updateUserCollateralPrice(address _collateral, address _user, uint256 _amount) public {
+    //     s_userToTokenDeposits[_user][_collateral] = _amount;
+    // }
 
-    function updateMintedValue(address _user, uint256 _amount) public {
-        s_userToZusdBalance[_user] = _amount;
-    }
+    // function updateMintedValue(address _user, uint256 _amount) public {
+    //     s_userToZusdBalance[_user] = _amount;
+    // }
 }

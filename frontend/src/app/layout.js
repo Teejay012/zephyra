@@ -3,6 +3,8 @@ import "./globals.css";
 
 import { Navbar } from "@/components/navbar/Navbar.jsx";
 import { Footer } from "@/components/footer/Footer.jsx";
+import { ZephyraProvider } from '@/hooks/contexts/ZephyraProvider';
+import { Toaster } from 'react-hot-toast';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,9 +27,12 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Navbar />
-        {children}
-        <Footer />
+        <ZephyraProvider>
+          <Toaster position="top-right" />
+          <Navbar />
+          {children}
+          <Footer />
+        </ZephyraProvider>
       </body>
     </html>
   );
