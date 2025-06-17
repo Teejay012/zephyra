@@ -25,9 +25,12 @@ export default function Hero() {
 
         {/* CTA Buttons */}
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <button className="bg-[#00C0FF] hover:bg-[#8B5CF6] text-[#1C1C28] font-semibold px-6 py-3 rounded-xl text-lg transition-colors cursor-pointer">
+          <Link 
+            href="/dashboard"
+            className="bg-[#00C0FF] hover:bg-[#8B5CF6] text-[#1C1C28] font-semibold px-6 py-3 rounded-xl text-lg transition-colors cursor-pointer"
+          >
             Launch App
-          </button>
+          </Link>
           <Link
             href="https://discord.com"
             target="_blank"

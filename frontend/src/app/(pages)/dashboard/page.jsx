@@ -1,8 +1,55 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useZephyra } from '@/hooks/contexts/ZephyraProvider';
 
 export default function DashboardHome() {
+
+
+
+  // ----------------------------------------------------------------------
+  // =========================================================================
+
+  const {
+    getHealthFactor,
+    getMintedZusd,
+    getUserWETHBalance,
+    getUserWBTCBalance,
+  } = useZephyra();
+
+  const [health, setHealth] = useState(null);
+  const [zusdMinted, setZusdMinted] = useState(null);
+  const [wethDeposited, setWethDeposited] = useState(null);
+  const [wbtcDeposited, setWbtcDeposited] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const [hf, zusd, weth, wbtc] = await Promise.all([
+        getHealthFactor(),
+        getMintedZusd(),
+        getUserWETHBalance(),
+        getUserWBTCBalance(),
+      ]);
+
+      if (hf !== null) setHealth(hf);
+      if (zusd !== null) setZusdMinted(zusd);
+      if (weth !== null) setWethDeposited(weth);
+      if (wbtc !== null) setWbtcDeposited(wbtc);
+    };
+
+    fetchData();
+  }, []);
+
+
+
+
+
+
+  // -------------------------------------------------------------------------------
+  // The return
+  // -------------------------------------------------------------------------------
+
   return (
     <section className="max-w-7xl mx-auto px-4 py-8">
       <h2 className="text-2xl font-bold mb-6 text-[#00C0FF]">Dashboard Overview</h2>
@@ -24,26 +71,37 @@ export default function DashboardHome() {
 
       {/* Balances Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        {[
-          { label: 'WETH Balance', value: '0.00 WETH' },
-          { label: 'WBTC Balance', value: '0.00 WBTC' },
-          { label: 'ZUSD Balance', value: '0.00 ZUSD' },
-        ].map(({ label, value }) => (
-          <div
-            key={label}
-            className="bg-[#2B1E5E]/60 border border-[#475569]/30 rounded-xl p-4 shadow-md"
-          >
-            <h4 className="text-sm text-[#94A3B8] mb-1">{label}</h4>
-            <p className="text-xl font-semibold text-white">{value}</p>
-          </div>
-        ))}
+        <div className="bg-[#2B1E5E]/60 border border-[#475569]/30 rounded-xl p-4 shadow-md">
+          <h4 className="text-sm text-[#94A3B8] mb-1">WETH Balance</h4>
+          <p className="text-xl font-semibold text-white">
+            {wethDeposited !== null ? `${wethDeposited.toFixed(4)} WETH` : 'Loading...'}
+          </p>
+        </div>
+        <div className="bg-[#2B1E5E]/60 border border-[#475569]/30 rounded-xl p-4 shadow-md">
+          <h4 className="text-sm text-[#94A3B8] mb-1">WBTC Balance</h4>
+          <p className="text-xl font-semibold text-white">
+            {wbtcDeposited !== null ? `${wbtcDeposited.toFixed(4)} WBTC` : 'Loading...'}
+          </p>
+        </div>
+        <div className="bg-[#2B1E5E]/60 border border-[#475569]/30 rounded-xl p-4 shadow-md">
+          <h4 className="text-sm text-[#94A3B8] mb-1">ZUSD Minted</h4>
+          <p className="text-xl font-semibold text-white">
+            {zusdMinted !== null ? `${zusdMinted.toFixed(2)} ZUSD` : 'Loading...'}
+          </p>
+        </div>
       </div>
 
       {/* Health Score */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-2 text-[#E4F3FF]">Health Score</h3>
         <div className="bg-[#2B1E5E]/60 border border-[#475569]/30 rounded-xl p-4 w-full max-w-sm">
-          <p className="text-3xl font-bold text-[#00C0FF]">N/A</p>
+          <p className="text-3xl font-bold text-[#00C0FF]">
+            {health !== null
+              ? health > 1e10
+                ? '∞'
+                : health.toFixed(2)
+              : 'Loading...'}
+          </p>
           <p className="text-sm text-[#94A3B8] mt-1">Your position health score</p>
         </div>
       </div>

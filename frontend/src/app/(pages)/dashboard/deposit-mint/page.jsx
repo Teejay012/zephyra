@@ -1,25 +1,88 @@
 'use client';
 
 import { useState } from 'react';
+import { ethers } from 'ethers';
+import { toast } from 'react-hot-toast';
+import { useZephyra } from '@/hooks/contexts/ZephyraProvider';
+import { WETH_TOKEN_ADDRESS, WBTC_TOKEN_ADDRESS } from '@/hooks/constants/contracts.js';
 
-const collateralTokens = ['WETH', 'WBTC'];
+// Token to address map (replace with actual addresses)
+const TOKEN_ADDRESS_MAP = {
+  WETH: WETH_TOKEN_ADDRESS,
+  WBTC: WBTC_TOKEN_ADDRESS,
+};
+
+const collateralTokens = Object.keys(TOKEN_ADDRESS_MAP);
 
 export default function DepositMintPage() {
   const [collateralToken, setCollateralToken] = useState('WETH');
   const [collateralAmount, setCollateralAmount] = useState('');
   const [zusdAmount, setZusdAmount] = useState('');
+  const { depositCollateralAndMintZusd } = useZephyra();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Connect to smart contract / backend logic
-    console.log({ collateralToken, collateralAmount, zusdAmount });
+
+    const tokenAddress = TOKEN_ADDRESS_MAP[collateralToken];
+
+    if (!tokenAddress) {
+      toast.error('Unsupported token');
+      return;
+    }
+
+    if (
+      !tokenAddress ||
+      isNaN(collateralAmount) || Number(collateralAmount) <= 0 ||
+      isNaN(zusdAmount) || Number(zusdAmount) <= 0
+    ) {
+      toast.error('Please enter valid positive numbers');
+      return;
+    }
+
+    const PRICE_FEED = {
+      WETH: 3000,
+      WBTC: 100000,
+    };
+
+    const usdValue = parseFloat(collateralAmount) * PRICE_FEED[collateralToken];
+    const allowedZusd = usdValue / 2; // This is just an assumption, must be removed when real logic is implemented
+    
+    if (parseFloat(zusdAmount) > allowedZusd) {
+      toast.error(`You can only mint up to ${allowedZusd.toFixed(2)} ZUSD with this amount of ${collateralToken}`);
+      return;
+    }
+
+    try {
+
+      // const decimals = await tokenContract.decimals();
+      // const collateralInWei = ethers.parseUnits(String(collateralAmount), decimals);
+      const collateralInWei = ethers.parseUnits(String(collateralAmount), 18);
+      const zusdInWei = ethers.parseUnits(String(zusdAmount), 18);
+
+      await depositCollateralAndMintZusd(tokenAddress, collateralInWei, zusdInWei);
+      setCollateralAmount('');
+      setZusdAmount('');
+    } catch (err) {
+      console.error(err);
+      toast.error('Transaction failed');
+    }
   };
+
+
 
   return (
     <section className="max-w-xl mx-auto px-4 py-10">
       <h2 className="text-2xl font-bold mb-6 text-[#00C0FF]">
         Deposit Collateral & Mint ZUSD
       </h2>
+
+      <div className="mb-6 text-sm text-[#94A3B8] bg-[#1C1C28] p-4 rounded-md border border-[#475569]/30">
+        ⚠️ <strong>Note:</strong> ZUSD is <strong>200% overcollateralized</strong>. That means:
+        <br />
+        <span className="text-[#E2E8F0]">
+          For every 1 ZUSD you mint, you must deposit at least 2 USD worth of collateral.
+        </span>
+      </div>
 
       <form
         onSubmit={handleSubmit}
@@ -48,6 +111,8 @@ export default function DepositMintPage() {
           </label>
           <input
             type="number"
+            step="any"
+            min="0"
             value={collateralAmount}
             onChange={(e) => setCollateralAmount(e.target.value)}
             placeholder="0.00"
@@ -60,6 +125,8 @@ export default function DepositMintPage() {
           <label className="block mb-2 text-sm text-[#94A3B8]">ZUSD to Mint</label>
           <input
             type="number"
+            step="any"
+            min="0"
             value={zusdAmount}
             onChange={(e) => setZusdAmount(e.target.value)}
             placeholder="0.00"
@@ -78,3 +145,8 @@ export default function DepositMintPage() {
     </section>
   );
 }
+
+
+
+
+// This is just an assumption, must be removed when real logic is implemented

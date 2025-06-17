@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useZephyra } from '@/hooks/contexts/ZephyraProvider';
+import ConnectWalletBtn from '@/components/connectWalletBtn/ConnectWalletBtn';
 
 const dummyUsers = [
   {
@@ -24,6 +26,7 @@ const dummyUsers = [
 ];
 
 export default function MarketPage() {
+  const { walletAddress } = useZephyra();
   const [selectedUser, setSelectedUser] = useState(null);
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
@@ -51,11 +54,20 @@ export default function MarketPage() {
     setTimeout(closeModal, 2000);
   };
 
+  // ❌ Not connected? Show message and connect button
+  if (!walletAddress) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center text-[#E4F3FF] gap-4 bg-[#1C1C28]">
+        <p className="text-lg font-semibold">Connect your wallet to view the market overview.</p>
+        <ConnectWalletBtn />
+      </div>
+    );
+  }
+
+  // ✅ Wallet connected? Show full page
   return (
     <section className="w-full pt-25 bg-[#2B1E5E] px-4 py-10">
-      <h2 className="text-2xl font-bold text-[#00C0FF] mb-6 text-center">
-        🧾 Market Overview
-      </h2>
+      <h2 className="text-2xl font-bold text-[#00C0FF] mb-6 text-center">🧾 Market Overview</h2>
 
       <div className="overflow-x-auto bg-[#1C1C28] rounded-lg shadow border border-[#334155]/30">
         <table className="w-full text-sm text-left text-[#E4F3FF]">
@@ -74,9 +86,11 @@ export default function MarketPage() {
                 <td className="px-6 py-4 font-mono">{user.address}</td>
                 <td className="px-6 py-4">{user.collateral}</td>
                 <td className="px-6 py-4">{user.zusd}</td>
-                <td className={`px-6 py-4 font-semibold ${
+                <td
+                  className={`px-6 py-4 font-semibold ${
                     user.health < 1.5 ? 'text-red-400' : 'text-green-400'
-                  }`}>
+                  }`}
+                >
                   {user.health.toFixed(2)}
                 </td>
                 <td className="px-6 py-4">
@@ -99,7 +113,8 @@ export default function MarketPage() {
           <div className="bg-[#1E1E2E] p-6 rounded-xl shadow-xl max-w-md w-full text-center border border-[#475569]/40">
             <h3 className="text-xl font-bold text-[#00C0FF] mb-4">⚠️ Liquidate User</h3>
             <p className="text-sm mb-4 text-[#94A3B8]">
-              Enter the amount of ZUSD to burn for <span className="text-[#E4F3FF]">{selectedUser.address}</span>
+              Enter the amount of ZUSD to burn for{' '}
+              <span className="text-[#E4F3FF]">{selectedUser.address}</span>
             </p>
 
             <input
@@ -140,3 +155,4 @@ export default function MarketPage() {
     </section>
   );
 }
+
