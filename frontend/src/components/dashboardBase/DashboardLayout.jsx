@@ -11,7 +11,7 @@ const navLinks = [
   { label: 'Deposit Collateral $ Mint ZUSD', href: '/dashboard/deposit-mint' },
   { label: 'Deposit Collateral', href: '/dashboard/deposit' },
   { label: 'Mint ZUSD', href: '/dashboard/mint' },
-  { label: 'Swap ZUSD', href: '/dashboard/swap' },
+  // { label: 'Swap ZUSD', href: '/dashboard/swap' },
   { label: 'Repay ZUSD', href: '/dashboard/repay' },
   { label: 'Redeem Collateral', href: '/dashboard/redeem' },
   { label: 'NFT Perks', href: '/dashboard/nfts' },

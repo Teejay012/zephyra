@@ -327,32 +327,32 @@ contract ZephyraVault is Ownable, ReentrancyGuard {
 
 
 
-    function swapZusdToCollateral(address _collateralTokenAddress, uint256 _zusdAmount) 
-        external 
-        moreThanZero(_zusdAmount) 
-        approvedCollateralToken(_collateralTokenAddress) 
-        nonReentrant 
-    {
-        if (s_userToZusdBalance[msg.sender] < _zusdAmount) {
-            revert ZephyraVault__InsufficientBalance();
-        }
+    // function swapZusdToCollateral(address _collateralTokenAddress, uint256 _zusdAmount) 
+    //     external 
+    //     moreThanZero(_zusdAmount) 
+    //     approvedCollateralToken(_collateralTokenAddress) 
+    //     nonReentrant 
+    // {
+    //     if (s_userToZusdBalance[msg.sender] < _zusdAmount) {
+    //         revert ZephyraVault__InsufficientBalance();
+    //     }
 
-        uint256 collateralAmount = getTokenAmountFromUsd(_collateralTokenAddress, _zusdAmount);
+    //     uint256 collateralAmount = getTokenAmountFromUsd(_collateralTokenAddress, _zusdAmount);
 
-        s_userToZusdBalance[msg.sender] -= _zusdAmount;
-        s_userToTokenDeposits[msg.sender][_collateralTokenAddress] += collateralAmount;
+    //     s_userToZusdBalance[msg.sender] -= _zusdAmount;
+    //     s_userToTokenDeposits[msg.sender][_collateralTokenAddress] += collateralAmount;
 
-        emit CollateralDeposited(msg.sender, _collateralTokenAddress, collateralAmount);
+    //     emit CollateralDeposited(msg.sender, _collateralTokenAddress, collateralAmount);
 
-        bool success = i_zusd.transferFrom(msg.sender, address(this), _zusdAmount);
+    //     bool success = i_zusd.transferFrom(msg.sender, address(this), _zusdAmount);
 
-        if (!success) {
-            revert ZephyraVault__TransferFailed();
-        }
+    //     if (!success) {
+    //         revert ZephyraVault__TransferFailed();
+    //     }
 
-        i_zusd.burn(_zusdAmount);
+    //     i_zusd.burn(_zusdAmount);
 
-    }
+    // }
 
 
 

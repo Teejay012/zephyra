@@ -74,6 +74,7 @@ export default function DepositPage() {
           </label>
           <input
             type="number"
+            step="any"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"

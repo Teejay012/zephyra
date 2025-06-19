@@ -69,6 +69,7 @@ export default function CrossChainPage() {
         <label className="block mb-1 text-sm font-medium text-[#E4F3FF]">Amount (ZUSD)</label>
         <input
           type="number"
+          step="any"
           min="0"
           placeholder="Enter amount"
           className="w-full bg-[#1C1C28] border border-[#475569]/30 rounded-md px-4 py-2 text-[#E4F3FF] placeholder:text-[#64748B]"

@@ -1,15 +1,45 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'react-hot-toast';
+import { ethers } from 'ethers';
+// import { useAccount, useSigner } from 'wagmi';
+import { useZephyra } from '@/hooks/contexts/ZephyraProvider';
+import { WETH_TOKEN_ADDRESS, WBTC_TOKEN_ADDRESS } from '@/hooks/constants/contracts.js';
+
+const tokenAddressMap = {
+  WETH: WETH_TOKEN_ADDRESS,
+  WBTC: WBTC_TOKEN_ADDRESS, 
+};
 
 export default function RedeemPage() {
+
   const [token, setToken] = useState('WETH');
   const [amount, setAmount] = useState('');
 
-  const handleRedeem = (e) => {
+  // const { data: signer } = useSigner();
+  // const { address: walletAddress } = useAccount();
+
+  const { redeemCollateral } = useZephyra();
+
+  const handleRedeem = async (e) => {
     e.preventDefault();
-    // TODO: Add smart contract logic for redemption
-    console.log(`Redeeming ${amount} ${token}`);
+
+    if (!amount || isNaN(amount) || Number(amount) <= 0) {
+      toast.error('Enter a valid amount');
+      return;
+    }
+
+    const tokenAddress = tokenAddressMap[token];
+    if (!tokenAddress) {
+      toast.error('Invalid token selected');
+      return;
+    }
+
+    await redeemCollateral({
+      tokenAddress,
+      rawAmount: amount,
+    });
   };
 
   return (
@@ -28,8 +58,11 @@ export default function RedeemPage() {
             onChange={(e) => setToken(e.target.value)}
             className="w-full p-3 rounded-md bg-[#1C1C28] border border-[#475569]/40 text-white"
           >
-            <option value="WETH">WETH</option>
-            <option value="WBTC">WBTC</option>
+            {Object.keys(tokenAddressMap).map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -38,6 +71,7 @@ export default function RedeemPage() {
           <label className="block mb-2 text-sm text-[#94A3B8]">Amount</label>
           <input
             type="number"
+            step="any"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
@@ -48,7 +82,7 @@ export default function RedeemPage() {
         {/* Redeem Button */}
         <button
           type="submit"
-          className="w-full py-3 bg-[#00C0FF] text-[#1C1C28] font-semibold rounded-md hover:bg-[#00e0ff]"
+          className="w-full py-3 bg-[#00C0FF] text-[#1C1C28] font-semibold rounded-md hover:bg-[#00e0ff] cursor-pointer"
         >
           Redeem
         </button>

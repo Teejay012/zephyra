@@ -54,9 +54,15 @@ export default function DepositMintPage() {
 
     try {
 
+      const TOKEN_DECIMALS = {
+        WETH: 18,
+        WBTC: 8,
+      };
+
       // const decimals = await tokenContract.decimals();
       // const collateralInWei = ethers.parseUnits(String(collateralAmount), decimals);
-      const collateralInWei = ethers.parseUnits(String(collateralAmount), 18);
+      const decimals = TOKEN_DECIMALS[collateralToken];
+      const collateralInWei = ethers.parseUnits(String(collateralAmount), decimals);
       const zusdInWei = ethers.parseUnits(String(zusdAmount), 18);
 
       await depositCollateralAndMintZusd(tokenAddress, collateralInWei, zusdInWei);

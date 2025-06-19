@@ -1,14 +1,29 @@
 'use client';
 
 import { useState } from 'react';
+// import { useAccount, useSigner } from 'wagmi';
+import { toast } from 'react-hot-toast';
+import { useZephyra } from '@/hooks/contexts/ZephyraProvider';
 
 export default function RepayPage() {
   const [repayAmount, setRepayAmount] = useState('');
 
-  const handleRepay = (e) => {
+  const { burnZusd } = useZephyra();
+
+  // const { address: walletAddress } = useAccount();
+  // const { data: signer } = useSigner();
+
+  const handleRepay = async (e) => {
     e.preventDefault();
-    // TODO: Add smart contract interaction to burn ZUSD
-    console.log(`Repaying ${repayAmount} ZUSD`);
+
+    if (!repayAmount || isNaN(repayAmount) || Number(repayAmount) <= 0) {
+      toast.error('Enter a valid amount');
+      return;
+    }
+
+    await burnZusd({
+      rawAmount: repayAmount
+    });
   };
 
   return (
@@ -24,6 +39,7 @@ export default function RepayPage() {
           <label className="block mb-2 text-sm text-[#94A3B8]">Amount to Repay</label>
           <input
             type="number"
+            step="any"
             value={repayAmount}
             onChange={(e) => setRepayAmount(e.target.value)}
             placeholder="0.00"
@@ -34,7 +50,7 @@ export default function RepayPage() {
         {/* Repay Button */}
         <button
           type="submit"
-          className="w-full py-3 bg-[#00C0FF] text-[#1C1C28] font-semibold rounded-md hover:bg-[#00e0ff]"
+          className="w-full py-3 bg-[#00C0FF] text-[#1C1C28] font-semibold rounded-md hover:bg-[#00e0ff] cursor-pointer"
         >
           Repay ZUSD
         </button>

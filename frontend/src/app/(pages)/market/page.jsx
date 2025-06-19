@@ -1,36 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useZephyra } from '@/hooks/contexts/ZephyraProvider';
 import ConnectWalletBtn from '@/components/connectWalletBtn/ConnectWalletBtn';
 
-const dummyUsers = [
-  {
-    address: '0xF3...9A7b',
-    collateral: '1.5 WETH',
-    zusd: '800 ZUSD',
-    health: 1.3,
-  },
-  {
-    address: '0xAc...47C1',
-    collateral: '0.9 WBTC',
-    zusd: '1500 ZUSD',
-    health: 2.1,
-  },
-  {
-    address: '0xBa...D16f',
-    collateral: '2.0 WETH',
-    zusd: '1000 ZUSD',
-    health: 1.0,
-  },
-];
-
 export default function MarketPage() {
-  const { walletAddress } = useZephyra();
+  const { walletAddress, getAllUsersData, liquidateUser } = useZephyra();
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+
   const [selectedUser, setSelectedUser] = useState(null);
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [liquidating, setLiquidating] = useState(false);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoadingUsers(true);
+      const fetched = await getAllUsersData();
+      setUsers(fetched);
+      setLoadingUsers(false);
+    };
+    fetchUsers();
+  }, [getAllUsersData]);
 
   const openModal = (user) => {
     setSelectedUser(user);
@@ -41,20 +33,48 @@ export default function MarketPage() {
   const closeModal = () => {
     setSelectedUser(null);
     setAmount('');
-    setLoading(false);
     setMessage('');
+    setLiquidating(false);
   };
 
   const confirmLiquidation = async () => {
-    if (!amount) return;
-    setLoading(true);
-    await new Promise((res) => setTimeout(res, 1500)); // Simulate delay
-    setLoading(false);
-    setMessage(`Successfully liquidated ${amount} ZUSD from ${selectedUser.address}`);
-    setTimeout(closeModal, 2000);
+    if (!amount || isNaN(amount) || Number(amount) <= 0) return;
+    const isSelf = selectedUser.address.toLowerCase() === walletAddress.toLowerCase();
+    if (isSelf) {
+      setMessage('❌ You cannot liquidate your own account');
+      return;
+    }
+    if (parseFloat(selectedUser.healthFactor) >= 1.0) {
+      setMessage('❌ This user cannot be liquidated (healthy position)');
+      return;
+    }
+
+    try {
+      setLiquidating(true);
+      // Find token used for collateral (the one with non-zero amount)
+      const collateral = selectedUser.collateral.find(c => parseFloat(c.amount) > 0);
+      if (!collateral || !collateral.address) {
+        setMessage('❌ No valid collateral found');
+        setLiquidating(false);
+        return;
+      }
+
+      await liquidateUser({
+        collateralTokenAddress: collateral.address,
+        userAddress: selectedUser.address,
+        rawDebtAmount: amount,
+      });
+
+      setMessage(`✅ Successfully liquidated ${amount} ZUSD from ${selectedUser.address}`);
+      setTimeout(closeModal, 2000);
+    } catch (err) {
+      console.error(err);
+      setMessage('❌ Liquidation failed');
+    } finally {
+      setLiquidating(false);
+    }
   };
 
-  // ❌ Not connected? Show message and connect button
   if (!walletAddress) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center text-[#E4F3FF] gap-4 bg-[#1C1C28]">
@@ -64,50 +84,67 @@ export default function MarketPage() {
     );
   }
 
-  // ✅ Wallet connected? Show full page
   return (
     <section className="w-full pt-25 bg-[#2B1E5E] px-4 py-10">
       <h2 className="text-2xl font-bold text-[#00C0FF] mb-6 text-center">🧾 Market Overview</h2>
 
       <div className="overflow-x-auto bg-[#1C1C28] rounded-lg shadow border border-[#334155]/30">
-        <table className="w-full text-sm text-left text-[#E4F3FF]">
-          <thead className="bg-[#2B1E5E] text-[#94A3B8] text-xs uppercase">
-            <tr>
-              <th className="px-6 py-4">User</th>
-              <th className="px-6 py-4">Collateral</th>
-              <th className="px-6 py-4">ZUSD Minted</th>
-              <th className="px-6 py-4">Health Score</th>
-              <th className="px-6 py-4">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {dummyUsers.map((user) => (
-              <tr key={user.address} className="border-t border-[#334155]/20">
-                <td className="px-6 py-4 font-mono">{user.address}</td>
-                <td className="px-6 py-4">{user.collateral}</td>
-                <td className="px-6 py-4">{user.zusd}</td>
-                <td
-                  className={`px-6 py-4 font-semibold ${
-                    user.health < 1.5 ? 'text-red-400' : 'text-green-400'
-                  }`}
-                >
-                  {user.health.toFixed(2)}
-                </td>
-                <td className="px-6 py-4">
-                  <button
-                    onClick={() => openModal(user)}
-                    className="text-sm px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 transition cursor-pointer"
-                  >
-                    Liquidate
-                  </button>
-                </td>
+        {loadingUsers ? (
+          <p className="text-center text-[#94A3B8] p-6">Loading users...</p>
+        ) : (
+          <table className="w-full text-sm text-left text-[#E4F3FF]">
+            <thead className="bg-[#2B1E5E] text-[#94A3B8] text-xs uppercase">
+              <tr>
+                <th className="px-6 py-4">User</th>
+                <th className="px-6 py-4">Collateral</th>
+                <th className="px-6 py-4">ZUSD Minted</th>
+                <th className="px-6 py-4">Health Score</th>
+                <th className="px-6 py-4">Liquidate</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {users.map((user) => {
+                const isSelf = user.address.toLowerCase() === walletAddress.toLowerCase();
+                const canLiquidate = parseFloat(user.healthFactor) < 1.0 && !isSelf;
+
+                return (
+                  <tr key={user.address} className="border-t border-[#334155]/20">
+                    <td className="px-6 py-4 font-mono truncate max-w-[100px]">{user.address}</td>
+                    <td className="px-6 py-4">
+                      {user.collateral
+                        .filter((c) => parseFloat(c.amount) > 0)
+                        .map((c) => `${parseFloat(c.amount).toFixed(2)} ${c.symbol}`)
+                        .join(', ') || '—'}
+                    </td>
+                    <td className="px-6 py-4">{parseFloat(user.zusd).toFixed(2)} ZUSD</td>
+                    <td
+                      className={`px-6 py-4 font-semibold ${
+                        parseFloat(user.healthFactor) < 1.5 ? 'text-red-400' : 'text-green-400'
+                      }`}
+                    >
+                      {parseFloat(user.healthFactor).toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4">
+                      {canLiquidate ? (
+                        <button
+                          onClick={() => openModal(user)}
+                          className="text-sm px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 transition cursor-pointer"
+                        >
+                          Liquidate
+                        </button>
+                      ) : (
+                        <span className="text-xs text-[#94A3B8] italic">Not eligible</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
 
-      {/* Modal */}
+      {/* Liquidation Modal */}
       {selectedUser && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-[#1E1E2E] p-6 rounded-xl shadow-xl max-w-md w-full text-center border border-[#475569]/40">
@@ -119,6 +156,7 @@ export default function MarketPage() {
 
             <input
               type="number"
+              step="any"
               min={0}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
@@ -129,14 +167,14 @@ export default function MarketPage() {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={confirmLiquidation}
-                disabled={loading}
+                disabled={liquidating}
                 className={`px-4 py-2 rounded-md text-white text-sm cursor-pointer ${
-                  loading
+                  liquidating
                     ? 'bg-[#8B5CF6]/40 cursor-not-allowed'
                     : 'bg-red-600 hover:bg-red-700'
                 }`}
               >
-                {loading ? 'Liquidating...' : 'Confirm Liquidation'}
+                {liquidating ? 'Liquidating...' : 'Confirm Liquidation'}
               </button>
               <button
                 onClick={closeModal}
@@ -155,4 +193,3 @@ export default function MarketPage() {
     </section>
   );
 }
-
