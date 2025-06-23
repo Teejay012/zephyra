@@ -41,12 +41,12 @@ Built with **Solidity**, **Foundry**, and **Next.js**, Zephyra integrates **Chai
 
 ## 🔗 Chainlink Integrations
 
-| Integration | Purpose |
-|-------------|---------|
-| **Chainlink Price Feeds** | Fetch secure WETH/USD and WBTC/USD data to calculate mintable ZUSD and liquidation thresholds. |
-| **Chainlink VRF** | Ensures randomness in the TryLuck game is tamper-proof and verifiable. |
-| **Chainlink Automation** | Monitors the TryLuck game to automatically end expired rounds and trigger winner selection or resets based on predefined conditions. |
-| **Chainlink CCIP** | Allows seamless and secure cross-chain transfers of ZUSD. |
+| Chainlink Feature | Location in Code | Description |
+|-------------------|------------------|-------------|
+| **Price Feeds** | [`ZephyraVault.sol`](https://github.com/Teejay012/zephyra/blob/main/smart-contract/src/ZephyraVault.sol#L504) | Fetches WETH/USD and WBTC/USD prices to determine collateral value and calculate how much ZUSD can be minted. |
+| **VRF (Verifiable Randomness)** | [`ZephyraNFT.sol`](https://github.com/Teejay012/zephyra/blob/main/smart-contract/src/ZephyraNFT.sol#L289) | Requests secure randomness using Chainlink VRF to fairly select NFT winner. |
+| **Automation** | [`ZephyraNFT.sol`](https://github.com/Teejay012/zephyra/blob/main/smart-contract/src/ZephyraNFT.sol#L245) | Uses Chainlink Automation (`checkUpkeep` / `performUpkeep`) to detect expired game rounds and automatically trigger winner selection logic. |
+| **CCIP (Cross-Chain Transfer)** | [`ZephyraCrossChain.sol`](https://github.com/Teejay012/zephyra/blob/main/smart-contract/src/ZephyraCrossChain.sol), [`ZephyraReceiver.sol`](https://github.com/Teejay012/zephyra/blob/main/smart-contract/src/ZephyraReceiver.sol) | Sends ZUSD from source chain to destination chain and mints/redeems the token via Chainlink CCIP. |
 
 ---
 
