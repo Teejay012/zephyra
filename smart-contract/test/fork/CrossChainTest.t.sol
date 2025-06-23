@@ -18,8 +18,8 @@ contract CrossChainTokenTransferTest is Test {
     ZephyraCrossChainTransfer xtx;
     ZephyraReceiver xReceiver;
 
-    address public constant ZUSD_SEPOLIA = 0x9ecd7dc4200f74abd24850075a00a3fdf6f79b48;
-    address public constant ZUSD_ON_BASE = 0xdac3fcaf7b7fed69c9fb320c9008d7f2f704e949;
+    address public constant ZUSD_SEPOLIA = 0x9EcD7DC4200F74aBD24850075a00a3fDf6F79B48;
+    address public constant ZUSD_ON_BASE = 0xdac3fcaF7b7FED69c9FB320c9008D7f2F704E949;
     address public constant WALLET = 0x186159375129Bc6ae88dA802977FdA3D2A6f80d3;
 
     uint64 constant DESTINATION_CHAIN = 10344971235874465080;

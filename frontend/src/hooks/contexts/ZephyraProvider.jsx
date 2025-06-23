@@ -139,11 +139,16 @@ export const ZephyraProvider = ({ children }) => {
       }
 
       // Deposit + Mint
+      const toastId = toast.loading('Transaction loading...');
       const tx = await vault.depositCollateralAndMintZusd(
         tokenAddress,
         collateralAmountWei,
         zusdAmountWei
       );
+      await tx.wait();
+      toast.dismiss(toastId);
+      toast.success('Collateral deposited!');
+      toast.success('ZUSD minted!');
 
     } catch (err) {
       console.error(err);
@@ -731,6 +736,42 @@ export const ZephyraProvider = ({ children }) => {
 
 
 
+    // -----------------------------------------------------------------------------------------------
+    //  GET USER NFTS
+    // -----------------------------------------------------------------------------------------------
+
+  const getUserNFTs = async () => {
+    const nftContract = zephyraNFT(provider);
+
+    const balance = await nftContract.balanceOf(walletAddress);
+    const nftList = [];
+
+    for (let i = 0; i < balance; i++) {
+      const tokenId = await nftContract.tokenOfOwnerByIndex(walletAddress, i);
+      const tokenURI = await nftContract.tokenURI(tokenId);
+      const metadataBase64 = tokenURI.split(',')[1];
+      const metadata = JSON.parse(atob(metadataBase64));
+      
+      nftList.push({
+        tokenId: tokenId.toString(),
+        ...metadata,
+      });
+    }
+
+    return nftList;
+  };
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     // -----------------------------------------------------------------------------------------------
@@ -950,6 +991,7 @@ const getZusdBalance = async () => {
         transferZusdCrossChainNative,
         getZusdBalance,
         getRaffleState,
+        getUserNFTs,
       }}
     >
       {children}

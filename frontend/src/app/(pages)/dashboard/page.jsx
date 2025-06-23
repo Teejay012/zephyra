@@ -16,12 +16,16 @@ export default function DashboardHome() {
     getMintedZusd,
     getUserWETHBalance,
     getUserWBTCBalance,
+    getUserNFTs,
+    walletAddress,
+    provider,
   } = useZephyra();
 
   const [health, setHealth] = useState(null);
   const [zusdMinted, setZusdMinted] = useState(null);
   const [wethDeposited, setWethDeposited] = useState(null);
   const [wbtcDeposited, setWbtcDeposited] = useState(null);
+  const [nfts, setNfts] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,6 +44,17 @@ export default function DashboardHome() {
 
     fetchData();
   }, []);
+
+
+  useEffect(() => {
+    const fetchNFTs = async () => {
+      if (!walletAddress || !provider) return;
+      const ownedNFTs = await getUserNFTs(walletAddress, provider);
+      setNfts(ownedNFTs);
+    };
+
+    fetchNFTs();
+  }, [walletAddress]);
 
 
 
@@ -110,19 +125,25 @@ export default function DashboardHome() {
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-2 text-[#E4F3FF]">My NFTs</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {/* Placeholder NFTs */}
-          {[1, 2, 3].map((id) => (
-            <div
-              key={id}
-              className="bg-[#2B1E5E]/60 border border-[#475569]/30 rounded-xl p-3 flex flex-col items-center justify-center"
-            >
-              <div className="w-24 h-24 bg-[#475569]/30 rounded-lg mb-2 flex items-center justify-center text-sm text-[#94A3B8]">
-                NFT #{id}
+          {nfts.length > 0 ? (
+            nfts.map((nft) => (
+              <div
+                key={nft.tokenId}
+                className="bg-[#2B1E5E]/60 border border-[#475569]/30 rounded-xl p-3 flex flex-col items-center justify-center"
+              >
+                <img
+                  src={nft.image}
+                  alt={nft.name}
+                  className="w-24 h-24 rounded-lg mb-2 object-cover"
+                />
+                <span className="text-xs text-[#94A3B8]">{nft.name}</span>
               </div>
-              <span className="text-xs text-[#94A3B8]">Reward NFT</span>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-sm text-[#94A3B8]">No NFTs yet.</p>
+          )}
         </div>
+
       </div>
     </section>
   );
