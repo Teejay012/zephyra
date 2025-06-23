@@ -1,0 +1,131 @@
+# 💠 Zephyra Protocol
+
+**Zephyra** is a decentralized stablecoin ecosystem that empowers users to mint a crypto-backed stablecoin (**ZUSD**) using overcollateralized assets (WETH or WBTC), participate in a Chainlink-powered NFT mini-game, and transfer stablecoins across chains via Chainlink CCIP.
+
+Built with **Solidity**, **Foundry**, and **Next.js**, Zephyra integrates **Chainlink VRF**, **Price Feeds**, and **CCIP** to create a composable DeFi and gaming experience.
+
+---
+
+## 🧩 Problem Zephyra Solves
+
+1. **Trustless Stablecoin Minting:** Centralized stablecoins pose custodial and regulatory risks. Zephyra offers an overcollateralized, decentralized alternative: ZUSD.
+2. **Cross-Chain Stablecoin Transfers:** Moving stablecoins across chains is fragmented. Zephyra solves this with Chainlink CCIP.
+3. **Engaging User Experience:** Many DeFi apps lack gamification. Zephyra adds a chance-based NFT mini-game powered by secure randomness from Chainlink VRF.
+
+---
+
+## 🚀 Features
+
+| Feature | Description |
+|--------|-------------|
+| 🏦 **ZUSD Minting** | Mint ZUSD by depositing WETH or WBTC as collateral. |
+| 🧮 **Health Factor Monitoring** | Real-time risk tracking and liquidation warnings. |
+| 🔁 **Cross-Chain Transfers** | Seamlessly move ZUSD across chains using Chainlink CCIP. |
+| 🎰 **TryLuck NFT Game** | Win rare NFTs in a provably fair game powered by Chainlink VRF and automatically managed with Chainlink Automation. |
+| 🕒 **Automated Game Round Logic** | Chainlink Automation monitors the TryLuck game to end rounds and trigger random winner selection based on time or entry conditions. |
+| 💻 **User-Friendly Frontend** | Built with Next.js for seamless wallet interactions and ZUSD vault management. |
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Tools |
+|------|-------|
+| **Smart Contracts** | Solidity, Foundry |
+| **Frontend** | React.js (Next.js), Tailwind CSS |
+| **Oracle Services** | Chainlink VRF, Automation, Price Feeds, CCIP |
+| **Tooling** | Ethers.js, Forge, Cast, Chainlink Functions (planned) |
+
+---
+
+
+## 🔗 Chainlink Integrations
+
+| Integration | Purpose |
+|-------------|---------|
+| **Chainlink Price Feeds** | Fetch secure WETH/USD and WBTC/USD data to calculate mintable ZUSD and liquidation thresholds. |
+| **Chainlink VRF** | Ensures randomness in the TryLuck game is tamper-proof and verifiable. |
+| **Chainlink Automation** | Monitors the TryLuck game to automatically end expired rounds and trigger winner selection or resets based on predefined conditions. |
+| **Chainlink CCIP** | Allows seamless and secure cross-chain transfers of ZUSD. |
+
+---
+
+## 🔗 Deployment
+
+| Component | Address / URL |
+|----------|----------------|
+| ZUSD Token (Testnet) | `0x792c6B6Cd8CdC39cA45D19438E8b53674CdB73E5` |
+| Vault Contract | `0x4BdD39A36Ec6f8B9904eA2ECf0E06eb09445B926` |
+| Zephy NFT | `0xbCA48d467600E53DE5D44db4EB0B59AC2a98EFAB` |
+| CCIP Sender | `0x...` |
+| CCIP Receiver | `0x...` |
+| Frontend URL | [zephyra](https://zephyra-kappa.vercel.app/) |
+| Demo Video | [YouTube Demo](https://youtu.be/your-demo-link) |
+
+---
+
+## ⚙️ How to Run Locally
+
+1. **Clone the Repo**
+
+```bash
+git clone https://github.com/Teejay012/zephyra.git
+cd zephyra
+npm install  # or yarn
+```
+
+2. **Install Dependencies**
+
+```bash
+npm install  # or yarn
+```
+
+3. **Run the Frontend**
+
+```bash
+npm run dev
+```
+
+
+---
+
+## 📹 Demo Preview
+
+
+
+
+
+
+
+---
+
+
+## 👥 Team
+- TJ (EtherEngineer) — Solidity Architect & Junior Security Researcher
+
+
+---
+
+
+## 🏁 Submission Summary
+
+✅ Uses Chainlink Price Feeds for real-time collateral valuation
+
+✅ Uses Chainlink VRF for secure NFT game randomness
+
+✅ Uses Chainlink CCIP for cross-chain stablecoin movement
+
+✅ Uses Chainlink Automation to monitor and manage NFT game rounds without manual intervention
+
+✅ Frontend + Smart Contracts fully built and deployed
+
+
+---
+
+
+## 📜 License
+MIT License
+
+---
+
+
