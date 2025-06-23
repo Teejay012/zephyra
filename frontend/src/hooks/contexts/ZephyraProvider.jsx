@@ -5,8 +5,8 @@ import { ethers } from 'ethers';
 import toast from 'react-hot-toast';
 import { useRouter, usePathname } from 'next/navigation';
 
-import { ZEPHYRA_STABLECOIN_ADDRESS, ZEPHYRA_VAULT_ADDRESS, WETH_TOKEN_ADDRESS, WBTC_TOKEN_ADDRESS } from '@/hooks/constants/contracts.js';
-import { zephyraVaultABI, ERC20_ABI } from '@/hooks/constants/abis.js';
+import { ZEPHYRA_STABLECOIN_ADDRESS, ZEPHYRA_VAULT_ADDRESS, WETH_TOKEN_ADDRESS, WBTC_TOKEN_ADDRESS, ZEPHYRA_NFT_ADDRESS, ZEPHYRA_XCHAIN_CONTRACT_ADDRESS } from '@/hooks/constants/contracts.js';
+import { zephyraVaultABI, zephyraNFTABI, zephyraXChainABI, ERC20_ABI } from '@/hooks/constants/abis.js';
 import { fetchContract } from '@/hooks/constants/fetchContract';
 
 
@@ -35,6 +35,12 @@ export const zephyraVault = (signerOrProvider) =>
 
 export const collateralContract = (tokenAddress, signerOrProvider) =>
   fetchContract(tokenAddress, ERC20_ABI, signerOrProvider);
+
+export const zephyraNFT = (signerOrProvider) =>
+  fetchContract(ZEPHYRA_NFT_ADDRESS, zephyraNFTABI, signerOrProvider);
+
+export const zephyraCrossChain = (signerOrProvider) =>
+  fetchContract(ZEPHYRA_XCHAIN_CONTRACT_ADDRESS, zephyraXChainABI, signerOrProvider);
 
 
 
@@ -132,32 +138,12 @@ export const ZephyraProvider = ({ children }) => {
         toast.success('Token approved!');
       }
 
-      // // Deposit + Mint
-      // const tx = await vault.depositCollateralAndMintZusd(
-      //   tokenAddress,
-      //   collateralAmountWei,
-      //   zusdAmountWei
-      // );
-
-      // const toastId = toast.loading('Transaction submitted...');
-      // await tx.wait();
-      // toast.dismiss(toastId);
-      // toast.success('Collateral deposited and ZUSD minted!');
-
-
-      //Deposit collateral (separate transaction)
-      const toastId1 = toast.loading('Depositing collateral...');
-      const depositTx = await vault.depositCollateral(tokenAddress, collateralAmountWei);
-      await depositTx.wait();
-      toast.dismiss(toastId1);
-      toast.success('Collateral deposited!');
-
-      // Mint ZUSD (separate transaction)
-      const toastId2 = toast.loading('Minting ZUSD...');
-      const mintTx = await vault.mintZusd(zusdAmountWei);
-      await mintTx.wait();
-      toast.dismiss(toastId2);
-      toast.success('ZUSD minted successfully!');
+      // Deposit + Mint
+      const tx = await vault.depositCollateralAndMintZusd(
+        tokenAddress,
+        collateralAmountWei,
+        zusdAmountWei
+      );
 
     } catch (err) {
       console.error(err);
@@ -593,6 +579,274 @@ export const ZephyraProvider = ({ children }) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+    // -----------------------------------------------------------------------------------------------
+    // NFT RAFFLE
+    // -----------------------------------------------------------------------------------------------
+
+
+
+
+    // -----------------------------------------------------------------------------------------------
+    // TRY LUCK
+    // -----------------------------------------------------------------------------------------------
+
+  const tryLuck = async () => {
+    if (!walletAddress || !signer) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    try {
+      const nftContract = zephyraNFT(signer);
+
+      const entryFee = await nftContract.getEntryFee();
+
+      const tx = await nftContract.tryLuck({
+        value: entryFee
+      });
+
+      const toastId = toast.loading('Trying your luck...');
+      await tx.wait();
+      toast.dismiss(toastId);
+      toast.success('Entry submitted!');
+
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to enter the raffle');
+    }
+  };
+
+
+
+
+
+
+
+
+
+
+    // -----------------------------------------------------------------------------------------------
+    //  GET ALL PLAYERS
+    // -----------------------------------------------------------------------------------------------
+
+
+  const getAllPlayers = async () => {
+    if (!provider) {
+      toast.error('Provider not available');
+      return [];
+    }
+
+    try {
+      const nftContract = zephyraNFT(provider);
+      const players = await nftContract.getAllPlayers();
+      return players;
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not fetch players');
+      return [];
+    }
+  };
+
+
+
+
+
+
+
+
+
+    // -----------------------------------------------------------------------------------------------
+    //  GET RECENT WINNER
+    // -----------------------------------------------------------------------------------------------
+
+  const getRecentWinner = async () => {
+    if (!provider) {
+      toast.error('Provider not available');
+      return null;
+    }
+
+    try {
+      const nftContract = zephyraNFT(provider);
+      const winner = await nftContract.getRecentWinner();
+      return winner;
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not fetch recent winner');
+      return null;
+    }
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // -----------------------------------------------------------------------------------------------
+    //  GET RAFFLE STATE
+    // -----------------------------------------------------------------------------------------------
+
+  const getRaffleState = async () => {
+    try {
+      const nftContract = zephyraNFT(provider);
+
+      const state = await nftContract.getRaffleState();
+
+      // Convert numeric enum to human-readable string
+      const stateLabel = state.toString() === '0' ? 'Open' : 'Closed';
+
+      return stateLabel;
+    } catch (error) {
+      console.error('Error getting raffle state:', error);
+      return null;
+    }
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // -----------------------------------------------------------------------------------------------
+    // CROSS-CHAIN TRANSFER
+    // -----------------------------------------------------------------------------------------------
+
+
+  const transferZusdCrossChainNative = async ({
+    destinationChainSelector,
+    receiverAddress,
+    zusdAmount
+  }) => {
+    if (!walletAddress || !signer) {
+      toast.error("Connect your wallet");
+      return;
+    }
+
+    try {
+      const contract = zephyraCrossChain(signer);
+      const zusdContract = zusd(signer);
+
+      const zusdAmountWei = ethers.parseUnits(String(zusdAmount), 18);
+
+      // Check balance
+      const userBalance = await zusdContract.balanceOf(walletAddress);
+      if (userBalance < zusdAmountWei) {
+        toast.error("Insufficient ZUSD balance");
+        return;
+      }
+
+      // Approve ZUSD if not already
+      const allowance = await zusdContract.allowance(walletAddress, ZEPHYRA_XCHAIN_CONTRACT_ADDRESS);
+      if (allowance < zusdAmountWei) {
+        const toastId = toast.loading("Approving ZUSD...");
+        const approveTx = await zusdContract.approve(ZEPHYRA_XCHAIN_CONTRACT_ADDRESS, zusdAmountWei);
+        await approveTx.wait();
+        toast.dismiss(toastId);
+        toast.success("ZUSD approved!");
+      }
+
+      // Build message to get fee
+      const receiverEncoded = ethers.AbiCoder.defaultAbiCoder().encode(["address"], [receiverAddress]);
+      const message = {
+        receiver: receiverEncoded,
+        data: "0x",
+        tokenAmounts: [{ token: ZEPHYRA_STABLECOIN_ADDRESS, amount: zusdAmountWei }],
+        extraArgs: ethers.AbiCoder.defaultAbiCoder().encode(["uint256"], [200_000]), // gas limit
+        feeToken: ethers.ZeroAddress
+      };
+
+      const fee = await contract.getFee(destinationChainSelector, message);
+
+      const toastId = toast.loading("Sending cross-chain transfer...");
+      const tx = await contract.transferTokensPayNative(
+        destinationChainSelector,
+        receiverAddress,
+        zusdAmountWei,
+        { value: fee }
+      );
+      await tx.wait();
+      toast.dismiss(toastId);
+      toast.success("ZUSD transferred cross-chain!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Transfer failed. Check values and try again.");
+    }
+  };
+
+
+
+
+
+
+
+
+
+
+// --------------------------------------------------------------------------------
+// Get ZUSD Balance
+// --------------------------------------------------------------------------------
+
+const getZusdBalance = async () => {
+  if (!walletAddress || !signer) {
+    toast.error('Missing wallet connection');
+    return null;
+  }
+
+  try {
+    const zusdContract = zusd(signer);
+    const balance = await zusdContract.balanceOf(walletAddress);
+    const formatted = Number(ethers.formatUnits(balance, 18));
+    return formatted;
+  } catch (err) {
+    console.error('Error fetching ZUSD balance:', err);
+    toast.error('Failed to fetch ZUSD balance');
+    return null;
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     // -----------------------------------------------------------------------------------------------
     // Connect Wallet
     // -----------------------------------------------------------------------------------------------
@@ -689,7 +943,13 @@ export const ZephyraProvider = ({ children }) => {
         burnZusd,
         redeemCollateral,
         getAllUsersData,
-        liquidateUser
+        liquidateUser,
+        tryLuck,
+        getAllPlayers,
+        getRecentWinner,
+        transferZusdCrossChainNative,
+        getZusdBalance,
+        getRaffleState,
       }}
     >
       {children}

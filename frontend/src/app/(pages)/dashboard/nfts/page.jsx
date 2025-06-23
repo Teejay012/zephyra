@@ -1,71 +1,115 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useZephyra } from '@/hooks/contexts/ZephyraProvider';
 
 export default function NFTPerksPage() {
-  const [isAvailable, setIsAvailable] = useState(true); // mock state
-  const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [players, setPlayers] = useState([]);
+  const [winner, setWinner] = useState(null);
+  const [raffleOpen, setRaffleOpen] = useState(false);
+  const [isParticipant, setIsParticipant] = useState(false);
 
-  const tryYourLuck = async () => {
+  const {
+    tryLuck,
+    getAllPlayers,
+    getRecentWinner,
+    getRaffleState,
+    walletAddress, // assuming you expose this from useZephyra
+  } = useZephyra();
+
+  const handleTryLuck = async () => {
     setLoading(true);
-    setResult(null);
-
-    // Simulate async randomness or contract call
-    await new Promise((res) => setTimeout(res, 2000));
-
-    // Mock result (random win/loss)
-    const didWin = Math.random() < 0.5;
-    setResult(didWin ? 'won' : 'lost');
+    await tryLuck();
+    await fetchPlayers(); // Refresh after entry
     setLoading(false);
   };
 
-  return (
-    <section className="max-w-md mx-auto px-4 py-10 text-center">
-      <h2 className="text-2xl font-bold text-[#00C0FF] mb-4">🎲 NFT Perks</h2>
-      <p className="text-[#94A3B8] mb-6">Mint exclusive ZEPHY NFTs by trying your luck!</p>
+  const fetchPlayers = async () => {
+    const fetchedPlayers = await getAllPlayers();
+    setPlayers(fetchedPlayers);
+    setIsParticipant(fetchedPlayers.includes(walletAddress));
+  };
 
-      {/* Availability Status */}
-      <div className="mb-4">
-        {isAvailable ? (
-          <span className="text-[#8B5CF6] font-semibold">ZEPHY NFTs are available to mint!</span>
-        ) : (
-          <span className="text-red-400 font-medium">No NFTs available right now.</span>
-        )}
+  const fetchWinner = async () => {
+    const fetchedWinner = await getRecentWinner();
+    setWinner(fetchedWinner);
+  };
+
+  const fetchRaffleState = async () => {
+    const state = await getRaffleState(); // Should return number (0 = Open, 1 = Closed)
+    setRaffleOpen(state.toString() === '0');
+  };
+
+  useEffect(() => {
+    fetchPlayers();
+    fetchWinner();
+    fetchRaffleState();
+  }, [walletAddress]);
+
+  const isButtonDisabled = loading || !raffleOpen || isParticipant;
+
+  return (
+    <section className="max-w-xl mx-auto px-4 py-10 text-center">
+      <h2 className="text-2xl font-bold text-[#00C0FF] mb-4">🎲 NFT Raffle</h2>
+      <p className="text-[#94A3B8] mb-6">Enter the raffle and win exclusive ZEPHY NFTs!</p>
+
+      <div className="mb-6 text-sm text-[#94A3B8] bg-[#1C1C28] p-4 rounded-md border border-[#475569]/30">
+        ⚠️ <strong>Note:</strong> To participate in this <strong>NFT Raffle Game</strong>, You must hold up to 10 ZUSD
+        <br />
       </div>
 
-      {/* Try Your Luck Button */}
+      {/* Show message if raffle is not open */}
+      {!raffleOpen && (
+        <p className="text-yellow-400 mb-4 font-medium">
+          🚧 Raffle is currently closed. Please check back later.
+        </p>
+      )}
+
+      {/* Show message if already a participant */}
+      {raffleOpen && isParticipant && (
+        <p className="text-blue-400 mb-4 font-medium">
+          ✅ You’ve already entered this raffle.
+        </p>
+      )}
+
       <button
-        disabled={!isAvailable || loading}
-        onClick={tryYourLuck}
+        onClick={handleTryLuck}
+        disabled={isButtonDisabled}
         className={`px-6 py-3 font-semibold rounded-md transition ${
-          loading
+          isButtonDisabled
             ? 'bg-[#8B5CF6]/40 cursor-not-allowed'
             : 'bg-[#8B5CF6] hover:bg-[#7C3AED]'
         } text-white`}
       >
-        {loading ? 'Rolling...' : 'Try Your Luck'}
+        {loading ? 'Entering...' : 'Try Your Luck'}
       </button>
 
-      {/* NFT Preview */}
-      <div className="mt-8">
-        <h3 className="text-xl font-semibold mb-2">🎁 ZEPHY NFT</h3>
-        <div className="bg-[#2B1E5E]/70 border border-[#475569]/30 p-6 rounded-xl">
-          <p className="text-[#E4F3FF]">Name: ZEPHY</p>
-          <p className="text-[#94A3B8] text-sm mt-1">A mysterious reward for daring users.</p>
-        </div>
+      {/* Players List */}
+      <div className="mt-10">
+        <h3 className="text-xl font-semibold mb-2">👥 Players</h3>
+        <ul className="text-sm text-left bg-[#1E293B]/30 rounded-md p-4 max-h-60 overflow-y-auto">
+          {players.length > 0 ? (
+            players.map((addr, idx) => (
+              <li key={idx} className="text-[#E4F3FF] border-b border-[#334155]/30 py-1">
+                {addr}
+              </li>
+            ))
+          ) : (
+            <p className="text-[#94A3B8] italic">No entries yet.</p>
+          )}
+        </ul>
       </div>
 
-      {/* Result Message */}
-      {result && (
-        <div className="mt-6 text-lg font-semibold">
-          {result === 'won' ? (
-            <span className="text-green-400">🎉 You won the ZEPHY NFT!</span>
-          ) : (
-            <span className="text-red-400">😢 You didn’t win this time. Try again later!</span>
-          )}
-        </div>
-      )}
+      {/* Winner Display */}
+      <div className="mt-6">
+        <h3 className="text-lg font-semibold">🏆 Recent Winner</h3>
+        {winner ? (
+          <p className="text-green-400">{winner}</p>
+        ) : (
+          <p className="text-[#94A3B8] italic">No winner yet. Stay tuned!</p>
+        )}
+      </div>
     </section>
   );
 }

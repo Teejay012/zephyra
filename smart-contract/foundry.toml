@@ -9,4 +9,5 @@ fs_permissions = [
     { access = "read", path = "./img/" },
     { access = "read", path = "./broadcast" },
 ]
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
+rpc_endpoints = { sepolia = "${SEPOLIA_RPC_URL}", base-sepolia = "${BASE_SEPOLIA_RPC_URL}" }

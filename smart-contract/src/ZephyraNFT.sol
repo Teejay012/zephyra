@@ -27,6 +27,7 @@ contract ZephyraNFT is ERC721, ERC721Pausable, VRFConsumerBaseV2Plus {
     error ZephyraNFT__RaffleNotOpen();
     error ZephyraNFT__UpkeepNotNeeded(uint256 balance, uint256 playerLegnth, uint256 raffleState);
     error ZephyraNFT__TokenDoesNotExist(uint256 tokenId);
+    error ZephyraNFT__PlayerCantEnterMoreThanOnce();
 
 
     // ══════════════════════════════════════════
@@ -67,8 +68,6 @@ contract ZephyraNFT is ERC721, ERC721Pausable, VRFConsumerBaseV2Plus {
     uint32 private constant NUM_WORDS = 1;
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
     
-    string private s_zephySvgUri;
-
     address payable[] private s_players;
     uint256 private s_lastTimeStamp;
     address private s_recentWinner;
@@ -78,6 +77,7 @@ contract ZephyraNFT is ERC721, ERC721Pausable, VRFConsumerBaseV2Plus {
     uint256 public s_minRequiredBalance;
 
     uint256 public s_tokenIdCounter;
+    mapping(address => bool) public s_hasEntered;
     mapping(address => bool) public s_hasClaimed;
 
 
@@ -114,12 +114,20 @@ contract ZephyraNFT is ERC721, ERC721Pausable, VRFConsumerBaseV2Plus {
         _;
     }
 
-    // modifier onlyOwner() {
-    //     if(s_owner != msg.sender) {
-    //         revert ZephyraNFT__NotOwner();
-    //     }
-    //     _;
-    // }
+    /**
+     * @notice Modifier to check if the user has not entered the raffle more than once.
+     * @dev Reverts if the user has already entered.
+     */
+
+    modifier checkForDuplicates() {
+        if (s_hasEntered[msg.sender]) {
+            revert ZephyraNFT__PlayerCantEnterMoreThanOnce();
+        }
+        s_hasEntered[msg.sender] = true;
+        _;
+    }
+
+
 
 
 
@@ -131,7 +139,6 @@ contract ZephyraNFT is ERC721, ERC721Pausable, VRFConsumerBaseV2Plus {
 
     constructor(
         address _token,
-        string memory _zephySvgUri,
         uint256 _minRequiredBalance,
         uint256 _entryFee,
         uint256 _interval,
@@ -142,7 +149,6 @@ contract ZephyraNFT is ERC721, ERC721Pausable, VRFConsumerBaseV2Plus {
     ) ERC721("ZephyraNFT", "ZEPHY") VRFConsumerBaseV2Plus(_vrfCoordinator) {
         require(_token != address(0), "Invalid token address");
         i_zusd = IZephyraStableCoin(_token);
-        s_zephySvgUri = _zephySvgUri;
 
         s_minRequiredBalance = _minRequiredBalance;
 
@@ -188,16 +194,16 @@ contract ZephyraNFT is ERC721, ERC721Pausable, VRFConsumerBaseV2Plus {
             revert ZephyraNFT__TokenDoesNotExist(tokenId);
         }
 
-        string memory imageURI = s_zephySvgUri;
-
+        string memory imageURI = "ipfs://bafkreihhlim2sqjyfvp23cxgqqpkuuo5hq6u2mkoyex4y3q6pcujia7b5a";
+        
         return string(
             abi.encodePacked(
                 _baseURI(),
                 Base64.encode(
-                    bytes( // bytes casting actually unnecessary as 'abi.encodePacked()' returns a bytes
+                    bytes(
                         abi.encodePacked(
                             '{"name":"',
-                            name(), // You can add whatever name here
+                            name(), 
                             '", "description":"An NFT for trusted users, with more than 10,000 ZUSD, 100% on Chain!", ',
                             '"attributes": [{"trait_type": "moodiness", "value": 100}], "image":"',
                             imageURI,
@@ -210,7 +216,7 @@ contract ZephyraNFT is ERC721, ERC721Pausable, VRFConsumerBaseV2Plus {
     }
 
 
-    function tryLuck() public payable isEligible NotAvailableCurrently {
+    function tryLuck() public payable isEligible NotAvailableCurrently checkForDuplicates {
 
         if (msg.value < i_entryFee) {
             revert ZephyraNFT__NotEnoughEntryFee();
@@ -246,7 +252,7 @@ contract ZephyraNFT is ERC721, ERC721Pausable, VRFConsumerBaseV2Plus {
         bool timeHasPassed = ((block.timestamp - s_lastTimeStamp) > i_interval);
         bool isOpen = s_raffleState == RaffleState.OPEN;
         bool hasEth = address(this).balance > 0;
-        bool hasPlayer = s_players.length > 0;
+        bool hasPlayer = s_players.length > 1;
         upkeepNeeded = (timeHasPassed && isOpen && hasEth && hasPlayer);
         return (upkeepNeeded, "0x0");
     }
@@ -324,6 +330,10 @@ contract ZephyraNFT is ERC721, ERC721Pausable, VRFConsumerBaseV2Plus {
     // ══════════════════════════════════════════
     // ══ GETTERS
     // ══════════════════════════════════════════
+
+    function getAllPlayers() external view returns (address payable[] memory) {
+        return s_players;
+    }
 
     function getPlayer(uint256 index) external view returns (address) {
         return s_players[index];
