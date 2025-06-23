@@ -8,7 +8,7 @@ import ConnectWalletBtn from '@/components/connectWalletBtn/ConnectWalletBtn';
 
 const navLinks = [
   { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Deposit Collateral $ Mint ZUSD', href: '/dashboard/deposit-mint' },
+  // { label: 'Deposit Collateral $ Mint ZUSD', href: '/dashboard/deposit-mint' },
   { label: 'Deposit Collateral', href: '/dashboard/deposit' },
   { label: 'Mint ZUSD', href: '/dashboard/mint' },
   // { label: 'Swap ZUSD', href: '/dashboard/swap' },
@@ -45,7 +45,7 @@ export default function DashboardLayout({ children }) {
             </svg>
           </button>
 
-          <nav className="hidden md:flex gap-2 items-center">
+          <nav className="hidden md:flex gap-5 items-center">
             {navLinks.map(({ label, href }) => {
               const isActive = pathname === href;
               return (
