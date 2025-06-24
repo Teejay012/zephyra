@@ -86,7 +86,7 @@ contract HelperConfig is CodeConstants, Script {
         fujiNetworkConfig = NetworkConfig({
             subscriptionId: 0,
             gasLane: 0xc799bd1e3bd4d1a41cd4968997a4e03dfd2a3c7c04b695881138580163f42887,
-            automationUpdateInterval: 86400, // 24 hours
+            automationUpdateInterval: 3600, // 1 hour
             raffleEntranceFee: 0.0005 ether,
             callbackGasLimit: 300000, // 300,000 gas
             vrfCoordinatorV2_5: 0x5C210eF41CD1a72de73bF76eC39637bB0d3d7BEE,
@@ -103,7 +103,7 @@ contract HelperConfig is CodeConstants, Script {
         sepoliaNetworkConfig = NetworkConfig({
             subscriptionId: 68266343087651619486944885948844956548801694477259066491391364738733153852762,
             gasLane: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
-            automationUpdateInterval: 86400, // 24 hours
+            automationUpdateInterval: 3600, // 1 hour
             raffleEntranceFee: 0.0005 ether,
             callbackGasLimit: 500000, // 500,000 gas
             vrfCoordinatorV2_5: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
@@ -133,7 +133,7 @@ contract HelperConfig is CodeConstants, Script {
         localNetworkConfig = NetworkConfig({
             subscriptionId: subscriptionId,
             gasLane: 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c, // doesn't really matter
-            automationUpdateInterval: 86400, // 24 hours
+            automationUpdateInterval: 3600, // 1 hour
             raffleEntranceFee: 0.0005 ether,
             callbackGasLimit: 500000, // 500,000 gas
             vrfCoordinatorV2_5: address(vrfCoordinatorV2_5Mock),

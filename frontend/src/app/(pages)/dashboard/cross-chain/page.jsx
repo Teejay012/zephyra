@@ -73,6 +73,11 @@ export default function CrossChainTransfer() {
 
   return (
     <section className="max-w-md mx-auto px-4 py-10">
+
+      <div className="mb-6 text-sm text-[#94A3B8] bg-[#1C1C28] p-4 rounded-md border border-[#475569]/30">
+        ⚠️ <strong>Note:</strong> The <strong>Cross-Chain Transfer</strong> is still in production, It might not work well.
+      </div>
+
       <div className="bg-[#101524]/80 backdrop-blur-md border border-[#475569]/40 rounded-2xl p-6 shadow-xl shadow-[#00C0FF]/10">
         <h2 className="text-2xl font-bold text-[#00C0FF] mb-6 text-center tracking-wide">
           🌉 Zephyra Cross-Chain Bridge

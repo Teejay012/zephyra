@@ -716,6 +716,7 @@ export const ZephyraProvider = ({ children }) => {
 
       // Convert numeric enum to human-readable string
       const stateLabel = state.toString() === '0' ? 'Open' : 'Closed';
+      console.log("Raffle State: ", stateLabel);
 
       return stateLabel;
     } catch (error) {

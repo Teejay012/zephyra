@@ -37,9 +37,10 @@ export default function NFTPerksPage() {
   };
 
   const fetchRaffleState = async () => {
-    const state = await getRaffleState(); // Should return number (0 = Open, 1 = Closed)
-    setRaffleOpen(state.toString() === '0');
+    const stateLabel = await getRaffleState(); // This now returns 'Open' or 'Closed'
+    setRaffleOpen(stateLabel === 'Open');
   };
+  
 
   useEffect(() => {
     fetchPlayers();
@@ -76,7 +77,7 @@ export default function NFTPerksPage() {
       <button
         onClick={handleTryLuck}
         disabled={isButtonDisabled}
-        className={`px-6 py-3 font-semibold rounded-md transition ${
+        className={`px-6 py-3 font-semibold rounded-md transition cursor-pointer ${
           isButtonDisabled
             ? 'bg-[#8B5CF6]/40 cursor-not-allowed'
             : 'bg-[#8B5CF6] hover:bg-[#7C3AED]'

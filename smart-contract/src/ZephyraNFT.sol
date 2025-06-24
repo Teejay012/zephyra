@@ -72,7 +72,7 @@ contract ZephyraNFT is ERC721, ERC721Pausable, VRFConsumerBaseV2Plus {
     uint256 private s_lastTimeStamp;
     address private s_recentWinner;
     RaffleState private s_raffleState;
-    uint256 private constant TRYING_INTERVAL = 1 days;
+    // uint256 private s_tryingInterval;
 
     uint256 public s_minRequiredBalance;
 
@@ -107,12 +107,12 @@ contract ZephyraNFT is ERC721, ERC721Pausable, VRFConsumerBaseV2Plus {
      * @dev Reverts if the last click time is within the cooldown period.
      */
 
-    modifier NotAvailableCurrently() {
-        if(block.timestamp < s_lastTimeStamp + TRYING_INTERVAL) {
-            revert ZephyraNFT__CooldownActive(s_lastTimeStamp, TRYING_INTERVAL);
-        }
-        _;
-    }
+    // modifier NotAvailableCurrently() {
+    //     if(block.timestamp < s_lastTimeStamp + s_tryingInterval) {
+    //         revert ZephyraNFT__CooldownActive(s_lastTimeStamp, s_tryingInterval);
+    //     }
+    //     _;
+    // }
 
     /**
      * @notice Modifier to check if the user has not entered the raffle more than once.
@@ -216,7 +216,7 @@ contract ZephyraNFT is ERC721, ERC721Pausable, VRFConsumerBaseV2Plus {
     }
 
 
-    function tryLuck() public payable isEligible NotAvailableCurrently checkForDuplicates {
+    function tryLuck() public payable isEligible /* NotAvailableCurrently */ checkForDuplicates {
 
         if (msg.value < i_entryFee) {
             revert ZephyraNFT__NotEnoughEntryFee();
