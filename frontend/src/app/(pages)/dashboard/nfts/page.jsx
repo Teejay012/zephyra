@@ -46,7 +46,7 @@ export default function NFTPerksPage() {
     fetchPlayers();
     fetchWinner();
     fetchRaffleState();
-  }, [walletAddress]);
+  }, []);
 
   const isButtonDisabled = loading || !raffleOpen || isParticipant;
 
