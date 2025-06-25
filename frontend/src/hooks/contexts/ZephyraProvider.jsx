@@ -737,31 +737,253 @@ export const ZephyraProvider = ({ children }) => {
 
 
 
-    // -----------------------------------------------------------------------------------------------
-    //  GET USER NFTS
-    // -----------------------------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------------------------
+//  GET USER NFTS (FIXED VERSION)
+// -----------------------------------------------------------------------------------------------
 
-  const getUserNFTs = async () => {
-    const nftContract = zephyraNFT(provider);
+// Add these helper functions to your ZephyraProvider.jsx
 
-    const balance = await nftContract.balanceOf(walletAddress);
-    const nftList = [];
-
-    for (let i = 0; i < balance; i++) {
-      const tokenId = await nftContract.tokenOfOwnerByIndex(walletAddress, i);
-      const tokenURI = await nftContract.tokenURI(tokenId);
-      const metadataBase64 = tokenURI.split(',')[1];
-      const metadata = JSON.parse(atob(metadataBase64));
-      
-      nftList.push({
-        tokenId: tokenId.toString(),
-        ...metadata,
-      });
+// Helper function to process image URIs
+const processImageUri = (imageUri) => {
+  if (!imageUri) return '/icons/placeholder-nft.png';
+  
+  if (imageUri.startsWith('data:')) return imageUri;
+  if (imageUri.startsWith('http')) return imageUri;
+  if (imageUri.startsWith('ipfs://')) return `https://ipfs.io/ipfs/${imageUri.slice(7)}`;
+  
+  // Handle base64 SVG
+  try {
+    const decoded = atob(imageUri);
+    if (decoded.includes('<svg')) {
+      return `data:image/svg+xml;base64,${imageUri}`;
     }
+  } catch (e) {
+    // Not valid base64, continue
+  }
+  
+  // If image is base64 encoded SVG, ensure it has proper data URI prefix
+  if (imageUri.startsWith('PHN2Zw') || imageUri.includes('<svg')) {
+    if (imageUri.includes('<svg')) {
+      return `data:image/svg+xml;base64,${btoa(imageUri)}`;
+    } else {
+      return `data:image/svg+xml;base64,${imageUri}`;
+    }
+  }
+  
+  return '/icons/placeholder-nft.png';
+};
 
+// Get NFTs via ERC-721 Enumerable (more efficient)
+const getNFTsViaEnumerable = async (nftContract, walletAddress, limit = 50) => {
+  try {
+    const balance = await nftContract.balanceOf(walletAddress);
+    const balanceNum = parseInt(balance.toString());
+    
+    if (balanceNum === 0) return [];
+    
+    const nftList = [];
+    const maxToFetch = Math.min(balanceNum, limit);
+    
+    for (let i = 0; i < maxToFetch; i++) {
+      try {
+        const tokenId = await nftContract.tokenOfOwnerByIndex(walletAddress, i);
+        const tokenURI = await nftContract.tokenURI(tokenId);
+        
+        let metadata;
+        try {
+          // Parse tokenURI (assuming it's data:application/json;base64,...)
+          const metadataBase64 = tokenURI.split(',')[1];
+          const metadataJson = atob(metadataBase64);
+          metadata = JSON.parse(metadataJson);
+          
+          nftList.push({
+            tokenId: tokenId.toString(),
+            ...metadata,
+            image: processImageUri(metadata.image),
+            originalImage: metadata.image
+          });
+        } catch (parseError) {
+          console.error(`Error parsing metadata for token ${tokenId}:`, parseError);
+          nftList.push({
+            tokenId: tokenId.toString(),
+            name: `ZephyraNFT #${tokenId}`,
+            description: 'NFT metadata could not be parsed',
+            image: '/icons/placeholder-nft.png',
+            error: 'Metadata parsing failed'
+          });
+        }
+      } catch (tokenError) {
+        console.error(`Error fetching token at index ${i}:`, tokenError);
+      }
+    }
+    
     return nftList;
-  };
+  } catch (error) {
+    console.error('Error in getNFTsViaEnumerable:', error);
+    throw error;
+  }
+};
 
+// Get NFTs via events (fallback method)
+const getNFTsViaEvents = async (nftContract, walletAddress, limit = 50) => {
+  try {
+    // Get all NftMinted events for this user
+    const filter = nftContract.filters.NftMinted(walletAddress);
+    const events = await nftContract.queryFilter(filter);
+    
+    const nftList = [];
+    let processed = 0;
+    
+    for (const event of events) {
+      if (processed >= limit) break;
+      
+      const tokenId = event.args.tokenIdCounter;
+      
+      try {
+        // Verify user still owns this token
+        const owner = await nftContract.ownerOf(tokenId);
+        if (owner.toLowerCase() === walletAddress.toLowerCase()) {
+          const tokenURI = await nftContract.tokenURI(tokenId);
+          
+          let metadata;
+          try {
+            // TokenURI format: "data:application/json;base64,{base64_encoded_json}"
+            const metadataBase64 = tokenURI.split(',')[1];
+            const metadataJson = atob(metadataBase64);
+            metadata = JSON.parse(metadataJson);
+            
+            nftList.push({
+              tokenId: tokenId.toString(),
+              ...metadata,
+              image: processImageUri(metadata.image),
+              originalImage: metadata.image
+            });
+            
+            processed++;
+          } catch (parseError) {
+            console.error(`Error parsing metadata for token ${tokenId}:`, parseError);
+            nftList.push({
+              tokenId: tokenId.toString(),
+              name: `ZephyraNFT #${tokenId}`,
+              description: 'NFT metadata could not be parsed',
+              image: '/icons/placeholder-nft.png',
+              error: 'Metadata parsing failed'
+            });
+            processed++;
+          }
+        }
+      } catch (ownershipError) {
+        console.log(`Token ${tokenId} no longer exists or was transferred:`, ownershipError);
+      }
+    }
+    
+    return nftList;
+  } catch (error) {
+    console.error('Error in getNFTsViaEvents:', error);
+    throw error;
+  }
+};
+
+// Main getUserNFTs function (replace your existing one)
+const getUserNFTs = async (walletAddress, provider, limit = 50) => {
+  try {
+    const nftContract = zephyraNFT(provider);
+    
+    // First try to check if enumerable is supported
+    let supportsEnumerable = false;
+    try {
+      // ERC165 interface ID for ERC721Enumerable
+      supportsEnumerable = await nftContract.supportsInterface('0x780e9d63');
+    } catch (error) {
+      console.log('Contract does not support ERC165 or enumerable check failed, using events method');
+      supportsEnumerable = false;
+    }
+    
+    console.log('Supports enumerable:', supportsEnumerable);
+    
+    if (supportsEnumerable) {
+      console.log('Using enumerable method to fetch NFTs');
+      return await getNFTsViaEnumerable(nftContract, walletAddress, limit);
+    } else {
+      console.log('Using events method to fetch NFTs');
+      return await getNFTsViaEvents(nftContract, walletAddress, limit);
+    }
+  } catch (error) {
+    console.error('Error fetching NFTs:', error);
+    
+    // If all else fails, try the original method
+    try {
+      console.log('Falling back to original method');
+      return await getUserNFTsOriginal(walletAddress, provider);
+    } catch (fallbackError) {
+      console.error('Fallback method also failed:', fallbackError);
+      throw new Error('Unable to fetch NFTs');
+    }
+  }
+};
+
+// Your original method as fallback
+const getUserNFTsOriginal = async (walletAddress, provider) => {
+  try {
+    const nftContract = zephyraNFT(provider);
+    
+    // Get all NftMinted events for this user
+    const filter = nftContract.filters.NftMinted(walletAddress);
+    const events = await nftContract.queryFilter(filter);
+    
+    const nftList = [];
+    
+    for (const event of events) {
+      const tokenId = event.args.tokenIdCounter;
+      
+      try {
+        // Verify user still owns this token
+        const owner = await nftContract.ownerOf(tokenId);
+        if (owner.toLowerCase() === walletAddress.toLowerCase()) {
+          const tokenURI = await nftContract.tokenURI(tokenId);
+          
+          // Parse the tokenURI properly
+          let metadata;
+          try {
+            // TokenURI format: "data:application/json;base64,{base64_encoded_json}"
+            const metadataBase64 = tokenURI.split(',')[1];
+            const metadataJson = atob(metadataBase64);
+            metadata = JSON.parse(metadataJson);
+            
+            nftList.push({
+              tokenId: tokenId.toString(),
+              ...metadata,
+              image: processImageUri(metadata.image),
+              originalImage: metadata.image
+            });
+            
+          } catch (parseError) {
+            console.error(`Error parsing metadata for token ${tokenId}:`, parseError);
+            console.log('Raw tokenURI:', tokenURI);
+            
+            // Add NFT with basic info even if metadata parsing fails
+            nftList.push({
+              tokenId: tokenId.toString(),
+              name: `ZephyraNFT #${tokenId}`,
+              description: 'NFT metadata could not be parsed',
+              image: '/icons/placeholder-nft.png',
+              error: 'Metadata parsing failed'
+            });
+          }
+        }
+      } catch (ownershipError) {
+        console.log(`Token ${tokenId} no longer exists or was transferred:`, ownershipError);
+      }
+    }
+    
+    console.log('Fetched NFTs:', nftList);
+    return nftList;
+    
+  } catch (error) {
+    console.error('Error fetching user NFTs:', error);
+    throw new Error('Unable to fetch NFTs');
+  }
+};
 
 
 
