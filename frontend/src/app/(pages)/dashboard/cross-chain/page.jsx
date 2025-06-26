@@ -74,9 +74,9 @@ export default function CrossChainTransfer() {
           which mirrors user holdings and enables cross-chain transfers using <strong>Chainlink CCIP</strong> — all without burdening the user.
       </div>
 
-      <div className="mb-6 text-sm text-[#94A3B8] bg-[#1C1C28] p-4 rounded-md border border-[#475569]/30">
+      {/* <div className="mb-6 text-sm text-[#94A3B8] bg-[#1C1C28] p-4 rounded-md border border-[#475569]/30">
         ⚠️ <strong>Note:</strong> Link test token required for transaction fee
-      </div>
+      </div> */}
 
       <div className="bg-[#101524]/80 backdrop-blur-md border border-[#475569]/40 rounded-2xl p-6 shadow-xl shadow-[#00C0FF]/10">
         <h2 className="text-2xl font-bold text-[#00C0FF] mb-6 text-center tracking-wide">
