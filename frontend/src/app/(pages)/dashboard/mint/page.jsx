@@ -63,6 +63,10 @@ export default function MintPage() {
           Mint ZUSD
         </button>
       </form>
+
+      <div className="mb-6 text-sm text-[#94A3B8] bg-[#1C1C28] p-4 rounded-md border border-[#475569]/30">
+        <strong>ZUSD CONTRACT ADDRESS:</strong> 0x792c6B6Cd8CdC39cA45D19438E8b53674CdB73E5
+      </div>
     </section>
   );
 }
