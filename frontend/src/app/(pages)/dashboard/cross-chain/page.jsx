@@ -69,9 +69,13 @@ export default function CrossChainTransfer() {
   return (
     <section className="max-w-md mx-auto px-4 py-10">
       <div className="mb-6 text-sm text-[#94A3B8] bg-[#1C1C28] p-4 rounded-md border border-[#475569]/30">
-        ⚠️ <strong>Note:</strong> Since ZUSD ownership was transferred for security reasons,
+         ℹ️ Since ZUSD ownership was transferred for security reasons,
          we built a seamless abstraction layer using WrappedZUSD, 
           which mirrors user holdings and enables cross-chain transfers using <strong>Chainlink CCIP</strong> — all without burdening the user.
+      </div>
+
+      <div className="mb-6 text-sm text-[#94A3B8] bg-[#1C1C28] p-4 rounded-md border border-[#475569]/30">
+        ⚠️ <strong>Note:</strong> Link test token required for transaction fee
       </div>
 
       <div className="bg-[#101524]/80 backdrop-blur-md border border-[#475569]/40 rounded-2xl p-6 shadow-xl shadow-[#00C0FF]/10">
