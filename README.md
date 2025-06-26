@@ -59,8 +59,13 @@ Built with **Solidity**, **Foundry**, and **Next.js**, Zephyra integrates **Chai
 | Zephy NFT | `0x26ACde522bc7c5EbB9A0614E7710f45A063B09ED` |
 | CCIP Contract | `0x708ccC43D27eFF4F057DE2A19f6bDC3e1Fa39bE5` |
 | Cross-Chain Wrapper | `0xDAAF457596D0dF7861789A70Dc4d7DeB5496b6D9` |
+| wZUSD on Sepolia | `0x51c751935deabd0bb45aaebafaae3179a98427da` |
+| wZUSD on Base Sepolia | `0xae4f4c9997f6d3ec6378e7365b5e587126907306` |
+| wZUSD on Avalanche Fuji | `0x2b0f837b3a3d7210e296529c99ce46f5d1d90043` |
+| WETH on Sepolia | `0xdd13E55209Fd76AfE204dBda4007C227904f0a81` |
+| WBTC on Sepolia | `0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063` |
 | Frontend URL | [zephyra](https://zephyra-kappa.vercel.app/) |
-| Demo Video | [YouTube Demo](https://youtu.be/your-demo-link) |
+| Demo Video | [YouTube Demo](https://youtu.be/-Gqy3_eO6x4) |
 
 ---
 
@@ -93,7 +98,7 @@ npm run dev
 
 
 
-
+[YouTube Demo](https://youtu.be/-Gqy3_eO6x4)
 
 
 
