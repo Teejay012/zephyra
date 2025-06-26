@@ -5,7 +5,7 @@ import { ethers } from 'ethers';
 import toast from 'react-hot-toast';
 import { useRouter, usePathname } from 'next/navigation';
 
-import { ZEPHYRA_STABLECOIN_ADDRESS, ZEPHYRA_VAULT_ADDRESS, WETH_TOKEN_ADDRESS, WBTC_TOKEN_ADDRESS, ZEPHYRA_NFT_ADDRESS, ZEPHYRA_XCHAIN_CONTRACT_ADDRESS } from '@/hooks/constants/contracts.js';
+import { ZEPHYRA_STABLECOIN_ADDRESS, WRAPPED_ZUSD, ZEPHYRA_VAULT_ADDRESS, WETH_TOKEN_ADDRESS, WBTC_TOKEN_ADDRESS, ZEPHYRA_NFT_ADDRESS, ZUSD_CCIP_PROCESSING_CONTRACT } from '@/hooks/constants/contracts.js';
 import { zephyraVaultABI, zephyraNFTABI, zephyraXChainABI, ERC20_ABI } from '@/hooks/constants/abis.js';
 import { fetchContract } from '@/hooks/constants/fetchContract';
 
@@ -30,6 +30,9 @@ const tokenList = [
 export const zusd = (signerOrProvider) =>
   fetchContract(ZEPHYRA_STABLECOIN_ADDRESS, ERC20_ABI, signerOrProvider);
 
+export const w_zusd = (signerOrProvider) =>
+  fetchContract(WRAPPED_ZUSD, ERC20_ABI, signerOrProvider);
+
 export const zephyraVault = (signerOrProvider) =>
   fetchContract(ZEPHYRA_VAULT_ADDRESS, zephyraVaultABI, signerOrProvider);
 
@@ -40,7 +43,7 @@ export const zephyraNFT = (signerOrProvider) =>
   fetchContract(ZEPHYRA_NFT_ADDRESS, zephyraNFTABI, signerOrProvider);
 
 export const zephyraCrossChain = (signerOrProvider) =>
-  fetchContract(ZEPHYRA_XCHAIN_CONTRACT_ADDRESS, zephyraXChainABI, signerOrProvider);
+  fetchContract(ZUSD_CCIP_PROCESSING_CONTRACT, zephyraXChainABI, signerOrProvider);
 
 
 
@@ -714,7 +717,6 @@ export const ZephyraProvider = ({ children }) => {
 
       const state = await nftContract.getRaffleState();
 
-      // Convert numeric enum to human-readable string
       const stateLabel = state.toString() === '0' ? 'Open' : 'Closed';
       console.log("Raffle State: ", stateLabel);
 
@@ -773,7 +775,9 @@ const processImageUri = (imageUri) => {
   return '/icons/placeholder-nft.png';
 };
 
-// Get NFTs via ERC-721 Enumerable (more efficient)
+
+
+
 const getNFTsViaEnumerable = async (nftContract, walletAddress, limit = 50) => {
   try {
     const balance = await nftContract.balanceOf(walletAddress);
@@ -997,71 +1001,72 @@ const getUserNFTsOriginal = async (walletAddress, provider) => {
 
 
 
-    // -----------------------------------------------------------------------------------------------
-    // CROSS-CHAIN TRANSFER
-    // -----------------------------------------------------------------------------------------------
 
 
-  const transferZusdCrossChainNative = async ({
-    destinationChainSelector,
-    receiverAddress,
-    zusdAmount
-  }) => {
-    if (!walletAddress || !signer) {
-      toast.error("Connect your wallet");
-      return;
-    }
 
-    try {
-      const contract = zephyraCrossChain(signer);
-      const zusdContract = zusd(signer);
 
-      const zusdAmountWei = ethers.parseUnits(String(zusdAmount), 18);
 
-      // Check balance
-      const userBalance = await zusdContract.balanceOf(walletAddress);
-      if (userBalance < zusdAmountWei) {
-        toast.error("Insufficient ZUSD balance");
-        return;
-      }
 
-      // Approve ZUSD if not already
-      const allowance = await zusdContract.allowance(walletAddress, ZEPHYRA_XCHAIN_CONTRACT_ADDRESS);
-      if (allowance < zusdAmountWei) {
-        const toastId = toast.loading("Approving ZUSD...");
-        const approveTx = await zusdContract.approve(ZEPHYRA_XCHAIN_CONTRACT_ADDRESS, zusdAmountWei);
-        await approveTx.wait();
-        toast.dismiss(toastId);
-        toast.success("ZUSD approved!");
-      }
+  // --------------------------------------------------------------------------------
+  // Process and Send ZUSD (Wrap + Transfer Cross-chain)
+  // --------------------------------------------------------------------------------
 
-      // Build message to get fee
-      const receiverEncoded = ethers.AbiCoder.defaultAbiCoder().encode(["address"], [receiverAddress]);
-      const message = {
-        receiver: receiverEncoded,
-        data: "0x",
-        tokenAmounts: [{ token: ZEPHYRA_STABLECOIN_ADDRESS, amount: zusdAmountWei }],
-        extraArgs: ethers.AbiCoder.defaultAbiCoder().encode(["uint256"], [200_000]), // gas limit
-        feeToken: ethers.ZeroAddress
-      };
+const processAndSendZUSD = async (
+  destinationChainSelector,
+  receiverOnDestChain,
+  amount
+) => {
+  if (!walletAddress || !signer) {
+    toast.error('Missing wallet connection');
+    return;
+  }
 
-      const fee = await contract.getFee(destinationChainSelector, message);
+  if (!destinationChainSelector || !receiverOnDestChain || !amount) {
+    toast.error('Missing input values');
+    return;
+  }
 
-      const toastId = toast.loading("Sending cross-chain transfer...");
-      const tx = await contract.transferTokensPayNative(
-        destinationChainSelector,
-        receiverAddress,
-        zusdAmountWei,
-        { value: fee }
-      );
-      await tx.wait();
+  try {
+    const zusdContract = zusd(signer);
+    const cossXContract = zephyraCrossChain(signer);
+
+    const decimals = await zusdContract.decimals();
+    const amountWei = ethers.parseUnits(String(amount), decimals);
+
+    const currentAllowance = await zusdContract.allowance(walletAddress, ZUSD_CCIP_PROCESSING_CONTRACT);
+
+    if (currentAllowance < amountWei) {
+      const toastId = toast.loading('Approving ZUSD...');
+      const approvalTx = await zusdContract.approve(ZUSD_CCIP_PROCESSING_CONTRACT, amountWei);
+      await approvalTx.wait();
       toast.dismiss(toastId);
-      toast.success("ZUSD transferred cross-chain!");
-    } catch (err) {
-      console.error(err);
-      toast.error("Transfer failed. Check values and try again.");
+      toast.success('ZUSD approved!');
     }
-  };
+
+    const toastId = toast.loading('Processing and forwarding ZUSD...');
+    const tx = await cossXContract.processAndSend(
+      destinationChainSelector,
+      receiverOnDestChain,
+      amountWei
+    );
+    await tx.wait();
+    toast.dismiss(toastId);
+    toast.success('ZUSD sent cross-chain!');
+
+  } catch (err) {
+    console.error(err);
+    toast.error('Cross-chain transfer failed. Check inputs and approval.');
+  }
+};
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1211,7 +1216,7 @@ const getZusdBalance = async () => {
         tryLuck,
         getAllPlayers,
         getRecentWinner,
-        transferZusdCrossChainNative,
+        processAndSendZUSD,
         getZusdBalance,
         getRaffleState,
         getUserNFTs,

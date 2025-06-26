@@ -8,23 +8,30 @@ const chainData = {
   baseSepolia: {
     name: 'Base Sepolia',
     selector: '10344971235874465080',
+    wrappedZusd: '0xae4f4c9997f6d3ec6378e7365b5e587126907306', 
   },
   fuji: {
     name: 'Avalanche Fuji',
     selector: '14767482510784806043',
+    wrappedZusd: '0x2b0f837b3a3d7210e296529c99ce46f5d1d90043',
   },
 };
 
 export default function CrossChainTransfer() {
   const [amount, setAmount] = useState('');
-  const [sourceChain, setSourceChain] = useState('');
+  const [receiver, setReceiver] = useState('');
   const [destinationChain, setDestinationChain] = useState('');
   const [loading, setLoading] = useState(false);
   const [zusdBalance, setZusdBalance] = useState(null);
 
-  const { signer, walletAddress, transferZusdCrossChainNative, getZusdBalance, networkName } = useZephyra();
+  const {
+    signer,
+    walletAddress,
+    processAndSendZUSD, // ✅ your custom handler
+    getZusdBalance,
+    networkName,
+  } = useZephyra();
 
-  // Fetch balance on load
   useEffect(() => {
     const fetchBalance = async () => {
       if (!signer || !walletAddress) return;
@@ -34,33 +41,24 @@ export default function CrossChainTransfer() {
     fetchBalance();
   }, [signer, walletAddress]);
 
-
-
-
   const handleTransfer = async () => {
-    if (!walletAddress || !signer || !destinationChain) return;
+    if (!walletAddress || !signer || !destinationChain || !receiver) {
+      toast.error('Missing required fields');
+      return;
+    }
 
     if (!amount || parseFloat(amount) <= 0) {
       toast.error('Enter a valid amount');
       return;
     }
 
+    const { selector } = chainData[destinationChain];
     setLoading(true);
-    
+
     try {
-
-      console.log("Attempting transfer", {
-        selector: chainData[destinationChain].selector,
-        receiver: walletAddress,
-        amount,
-      });
-
-      await transferZusdCrossChainNative({
-        destinationChainSelector: chainData[destinationChain].selector,
-        receiverAddress: walletAddress,
-        zusdAmount: amount,
-      });
+      await processAndSendZUSD(selector, receiver, amount);
       setAmount('');
+      setReceiver('');
     } catch (err) {
       console.error(err);
     } finally {
@@ -68,14 +66,12 @@ export default function CrossChainTransfer() {
     }
   };
 
-  // Options excluding the source
-  const destinationOptions = Object.keys(chainData).filter((key) => key !== sourceChain);
-
   return (
     <section className="max-w-md mx-auto px-4 py-10">
-
       <div className="mb-6 text-sm text-[#94A3B8] bg-[#1C1C28] p-4 rounded-md border border-[#475569]/30">
-        ⚠️ <strong>Note:</strong> The <strong>Cross-Chain Transfer</strong> is still in production, It might not work well.
+        ⚠️ <strong>Note:</strong> Since ZUSD ownership was transferred for security reasons,
+         we built a seamless abstraction layer using WrappedZUSD, 
+          which mirrors user holdings and enables cross-chain transfers using <strong>Chainlink CCIP</strong> — all without burdening the user.
       </div>
 
       <div className="bg-[#101524]/80 backdrop-blur-md border border-[#475569]/40 rounded-2xl p-6 shadow-xl shadow-[#00C0FF]/10">
@@ -83,12 +79,11 @@ export default function CrossChainTransfer() {
           🌉 Zephyra Cross-Chain Bridge
         </h2>
 
-        {/* Chain Display */}
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <p className="text-sm text-[#94A3B8] mb-1">Source Chain</p>
             <div className="text-[#E4F3FF] bg-[#1C1C28] px-4 py-2 rounded-md border border-[#475569]/30">
-              {networkName ? `${networkName}` : '...'}
+              {networkName || '...'}
             </div>
           </div>
 
@@ -99,28 +94,43 @@ export default function CrossChainTransfer() {
               onChange={(e) => setDestinationChain(e.target.value)}
               className="w-full bg-[#1C1C28] border border-[#475569]/30 rounded-md px-4 py-2 text-[#E4F3FF]"
             >
-              {destinationOptions.map((key) => (
+              <option value="">Select a chain</option>
+              {Object.entries(chainData).map(([key, { name }]) => (
                 <option key={key} value={key}>
-                  {chainData[key].name}
+                  {name}
                 </option>
               ))}
             </select>
           </div>
         </div>
 
+        {destinationChain && (
+          <div className="mb-4 text-sm text-[#94A3B8]">
+            🧾 wZUSD Address:{' '}
+            <span className="text-[#E4F3FF] font-medium break-all">
+              {chainData[destinationChain].wrappedZusd}
+            </span>
+          </div>
+        )}
 
-        {/* ZUSD Balance */}
         <div className="mb-2 text-sm text-[#94A3B8]">
-        💰 Balance:{' '}
-        <span className="text-[#E4F3FF] font-medium">
-          {zusdBalance !== null ? `${zusdBalance.toFixed(4)} ZUSD` : 'Loading...'}
-        </span>
-      </div>
+          💰 Balance:{' '}
+          <span className="text-[#E4F3FF] font-medium">
+            {zusdBalance !== null ? `${zusdBalance.toFixed(4)} ZUSD` : 'Loading...'}
+          </span>
+        </div>
 
+        <div className="mb-4">
+          <label className="block mb-1 text-sm font-medium text-[#E4F3FF]">Receiver Address</label>
+          <input
+            type="text"
+            placeholder="Enter receiver address"
+            className="w-full bg-[#1C1C28] border border-[#475569]/30 rounded-lg px-4 py-2 text-[#E4F3FF] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#00C0FF]"
+            value={receiver}
+            onChange={(e) => setReceiver(e.target.value)}
+          />
+        </div>
 
-
-
-        {/* Amount Input */}
         <div className="mb-6">
           <label className="block mb-1 text-sm font-medium text-[#E4F3FF]">Amount (ZUSD)</label>
           <input
@@ -134,12 +144,11 @@ export default function CrossChainTransfer() {
           />
         </div>
 
-        {/* Transfer Button */}
         <button
           onClick={handleTransfer}
-          disabled={loading || !amount}
+          disabled={loading || !amount || !receiver || !destinationChain}
           className={`w-full px-6 py-3 font-semibold rounded-lg transition duration-200 text-white cursor-pointer ${
-            loading || !amount
+            loading || !amount || !receiver || !destinationChain
               ? 'bg-[#00C0FF]/30 cursor-not-allowed'
               : 'bg-[#00C0FF] hover:bg-[#00B0F0]'
           }`}

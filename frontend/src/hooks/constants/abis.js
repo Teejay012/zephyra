@@ -1,6 +1,6 @@
 import zephyraVault from '@/hooks/abis/ZephyraVaultABI.json';
 import zephyraNFT from '@/hooks/abis/ZephyraNFT_ABI.json';
-import zephyraXChain from "@/hooks/abis/Zephy-x-chain_ABI.json";
+import zephyraXChain from "@/hooks/abis/ZUSD_CCIP_ABI.json";
 
 export const zephyraVaultABI = zephyraVault.abi;
 export const zephyraNFTABI = zephyraNFT.abi;

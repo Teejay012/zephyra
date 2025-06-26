@@ -57,8 +57,8 @@ Built with **Solidity**, **Foundry**, and **Next.js**, Zephyra integrates **Chai
 | ZUSD Token (Testnet) | `0x792c6B6Cd8CdC39cA45D19438E8b53674CdB73E5` |
 | Vault Contract | `0x4BdD39A36Ec6f8B9904eA2ECf0E06eb09445B926` |
 | Zephy NFT | `0xbCA48d467600E53DE5D44db4EB0B59AC2a98EFAB` |
-| CCIP Sender | `0x...` |
-| CCIP Receiver | `0x...` |
+| CCIP Contract | `0x708ccC43D27eFF4F057DE2A19f6bDC3e1Fa39bE5` |
+| Cross-Chain Wrapper | `0xDAAF457596D0dF7861789A70Dc4d7DeB5496b6D9` |
 | Frontend URL | [zephyra](https://zephyra-kappa.vercel.app/) |
 | Demo Video | [YouTube Demo](https://youtu.be/your-demo-link) |
 
