@@ -751,7 +751,7 @@ export const ZephyraProvider = ({ children }) => {
       const tokenCounterRaw = await nftContract.s_tokenIdCounter();
 
       console.log("Raw tokenCounter:", tokenCounterRaw, typeof tokenCounterRaw);
-      
+
       const winnerTokenId = tokenCounterRaw - 1n;
       return winnerTokenId.toString();
     } catch (err) {
@@ -1053,12 +1053,12 @@ const processAndSendZUSD = async (
 ) => {
   if (!walletAddress || !signer) {
     toast.error('Missing wallet connection');
-    return;
+    return null;
   }
 
   if (!destinationChainSelector || !receiverOnDestChain || !amount) {
     toast.error('Missing input values');
-    return;
+    return null;
   }
 
   try {
@@ -1084,13 +1084,16 @@ const processAndSendZUSD = async (
       receiverOnDestChain,
       amountWei
     );
-    await tx.wait();
+    const receipt = await tx.wait();
     toast.dismiss(toastId);
     toast.success('ZUSD sent cross-chain!');
+
+    return { tx, receipt, hash: tx.hash };
 
   } catch (err) {
     console.error(err);
     toast.error('Cross-chain transfer failed. Check inputs and approval.');
+    return null;
   }
 };
 

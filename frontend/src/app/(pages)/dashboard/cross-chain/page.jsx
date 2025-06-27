@@ -56,15 +56,36 @@ export default function CrossChainTransfer() {
     setLoading(true);
 
     try {
-      await processAndSendZUSD(selector, receiver, amount);
+      const result = await processAndSendZUSD(selector, receiver, amount);
+
+      if (result && result.hash) {
+        toast.success(
+          <span>
+            ✅ Tx Sent:&nbsp;
+            <a
+              href={`https://ccip.chain.link/msg/${result.hash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline text-blue-400"
+            >
+              View on CCIP Explorer
+            </a>
+          </span>,
+          { duration: 10000 }
+        );
+      }
+
       setAmount('');
       setReceiver('');
     } catch (err) {
       console.error(err);
+      toast.error('Transaction failed');
     } finally {
       setLoading(false);
     }
   };
+
+
 
   return (
     <section className="max-w-md mx-auto px-4 py-10">
