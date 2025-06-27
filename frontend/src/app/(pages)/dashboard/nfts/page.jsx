@@ -9,19 +9,22 @@ export default function NFTPerksPage() {
   const [winner, setWinner] = useState(null);
   const [raffleOpen, setRaffleOpen] = useState(false);
   const [isParticipant, setIsParticipant] = useState(false);
+  const [winnerTokenId, setWinnerTokenId] = useState(null);
+
 
   const {
     tryLuck,
     getAllPlayers,
     getRecentWinner,
+    getWinnerTokenId,
     getRaffleState,
-    walletAddress, // assuming you expose this from useZephyra
+    walletAddress, 
   } = useZephyra();
 
   const handleTryLuck = async () => {
     setLoading(true);
     await tryLuck();
-    await fetchPlayers(); // Refresh after entry
+    await fetchPlayers(); 
     setLoading(false);
   };
 
@@ -36,6 +39,11 @@ export default function NFTPerksPage() {
     setWinner(fetchedWinner);
   };
 
+  const fetchWinnerTokenId = async () => {
+    const tokenId = await getWinnerTokenId();
+    setWinnerTokenId(tokenId);
+  };
+
   const fetchRaffleState = async () => {
     const stateLabel = await getRaffleState(); // This now returns 'Open' or 'Closed'
     setRaffleOpen(stateLabel === 'Open');
@@ -45,6 +53,7 @@ export default function NFTPerksPage() {
   useEffect(() => {
     fetchPlayers();
     fetchWinner();
+    fetchWinnerTokenId();
     fetchRaffleState();
   }, []);
 
@@ -107,10 +116,15 @@ export default function NFTPerksPage() {
         <h3 className="text-lg font-semibold">🏆 Recent Winner</h3>
         {winner ? (
           <>
-          <p className="text-green-400">{winner}</p>
-          <div className="mb-6 text-sm text-[#94A3B8] bg-[#1C1C28] p-4 rounded-md border border-[#475569]/30">
-            <strong>NFT Contract Address:</strong> 0x26ACde522bc7c5EbB9A0614E7710f45A063B09ED
-          </div>
+            <p className="text-green-400">{winner}</p>
+            {winnerTokenId && (
+              <p className="text-[#94A3B8] mt-1 text-sm">
+                🏅 <strong>Won Token ID:</strong> {winnerTokenId}
+              </p>
+            )}
+            <div className="mb-6 text-sm text-[#94A3B8] bg-[#1C1C28] p-4 rounded-md border border-[#475569]/30">
+              <strong>NFT Contract Address:</strong> 0x26ACde522bc7c5EbB9A0614E7710f45A063B09ED
+            </div>
           </>
         ) : (
           <p className="text-[#94A3B8] italic">No winner yet. Stay tuned!</p>

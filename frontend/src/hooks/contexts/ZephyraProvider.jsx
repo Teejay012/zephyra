@@ -736,6 +736,41 @@ export const ZephyraProvider = ({ children }) => {
 
 
 
+   // -----------------------------------------------------------------------------------------------
+  // GET CURRENT WINNER TOKEN ID
+  // -----------------------------------------------------------------------------------------------
+
+  const getWinnerTokenId = async () => {
+    if (!provider) {
+      toast.error('Provider not available');
+      return null;
+    }
+
+    try {
+      const nftContract = zephyraNFT(provider);
+      const tokenCounterRaw = await nftContract.s_tokenIdCounter();
+
+      console.log("Raw tokenCounter:", tokenCounterRaw, typeof tokenCounterRaw);
+      
+      const winnerTokenId = tokenCounterRaw - 1n;
+      return winnerTokenId.toString();
+    } catch (err) {
+      console.error('Error fetching token ID:', err);
+      toast.error('Could not fetch token ID');
+      return null;
+    }
+  };
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1216,6 +1251,7 @@ const getZusdBalance = async () => {
         tryLuck,
         getAllPlayers,
         getRecentWinner,
+        getWinnerTokenId,
         processAndSendZUSD,
         getZusdBalance,
         getRaffleState,
