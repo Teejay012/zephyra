@@ -151,23 +151,16 @@ contract ZephyraCrossChainTransfer is OwnerIsCreator {
     /// @notice Transfer tokens to receiver on the destination chain.
     /// @notice Pay in LINK tokens for the fees.
     /// @notice the token must be in the list of supported tokens.
-    /// @dev Assumes your contract has sufficient LINK tokens to pay for the fees.
-    /// @param _destChain The identifier (aka selector) for the destination blockchain.
-    /// @param _zephyraReceiver The address of the Zephyra receiver contract on the destination blockchain.
-    /// @param _userWallet The address of the user wallet that should receive the tokens.
-    /// @param _amount The amount of tokens to be transferred.
-    /// @return messageId The ID of the message that was sent.
 
     function transferTokensPayLINK(
         uint64 _destChain,
-        address _zephyraReceiver,
-        address _userWallet,
+        address _receiverWallet,
+        address _token,
         uint256 _amount
     )
         external
         onlyAllowlistedChain(_destChain)
-        validateReceiver(_zephyraReceiver)
-        validateReceiver(_userWallet)
+        validateReceiver(_receiverWallet)
         returns (bytes32 messageId)
     {
         if (_amount > i_zusd.balanceOf(msg.sender)) {
@@ -175,9 +168,8 @@ contract ZephyraCrossChainTransfer is OwnerIsCreator {
         }
 
         Client.EVM2AnyMessage memory evmMessage = _buildCCIPMessage(
-            _zephyraReceiver,
-            _userWallet,
-            address(i_zusd),
+            _receiverWallet,
+            _token,
             _amount,
             address(i_linkToken)
         );
@@ -198,8 +190,8 @@ contract ZephyraCrossChainTransfer is OwnerIsCreator {
         emit TokensTransferred(
             messageId,
             _destChain,
-            _userWallet,
-            address(i_zusd),
+            _receiverWallet,
+            _token,
             _amount,
             address(i_linkToken),
             fee
@@ -218,24 +210,18 @@ contract ZephyraCrossChainTransfer is OwnerIsCreator {
     /// @notice Transfer tokens to receiver on the destination chain.
     /// @notice Pay in native gas for the fees.
     /// @notice the token must be in the list of supported tokens.
-    /// @dev Assumes your contract has sufficient ZUSD tokens to pay for the transfer amount.
-    /// @param _destChain The identifier (aka selector) for the destination blockchain.
-    /// @param _zephyraReceiver The address of the Zephyra receiver contract on the destination blockchain.
-    /// @param _userWallet The address of the user wallet that should receive the tokens.
-    /// @param _amount The amount of tokens to be transferred.
-    /// @return messageId The ID of the message that was sent.
 
     function transferTokensPayNative(
         uint64 _destChain,
+        address _receiverWallet,
         address _zephyraReceiver,
-        address _userWallet,
         uint256 _amount
     )
         external
         payable
         onlyAllowlistedChain(_destChain)
         validateReceiver(_zephyraReceiver)
-        validateReceiver(_userWallet)
+        validateReceiver(_receiverWallet)
         returns (bytes32 messageId)
     {
         if (_amount > i_zusd.balanceOf(msg.sender)) {
@@ -244,8 +230,7 @@ contract ZephyraCrossChainTransfer is OwnerIsCreator {
 
         // Build the CCIP message: feeToken = address(0) indicates native gas
         Client.EVM2AnyMessage memory evmMessage = _buildCCIPMessage(
-            _zephyraReceiver,
-            _userWallet,
+            _receiverWallet,
             address(i_zusd),
             _amount,
             address(0) // native fee
@@ -264,7 +249,7 @@ contract ZephyraCrossChainTransfer is OwnerIsCreator {
         emit TokensTransferred(
             messageId,
             _destChain,
-            _userWallet,
+            _receiverWallet,
             address(i_zusd),
             _amount,
             address(0),
@@ -288,14 +273,9 @@ contract ZephyraCrossChainTransfer is OwnerIsCreator {
 
     /// @notice Construct a CCIP message.
     /// @dev This function will create an EVM2AnyMessage struct with all the necessary information for tokens transfer.
-    /// @param receiverContract The address of the receiver.
-    /// @param token The token to be transferred.
-    /// @param amount The amount of the token to be transferred.
-    /// @param feeToken The address of the token used for fees. Set address(0) for native gas.
-    /// @return Client.EVM2AnyMessage Returns an EVM2AnyMessage struct which contains information for sending a CCIP message.
+
     function _buildCCIPMessage(
-        address receiverContract,
-        address userWallet,
+        address receiverWallet,
         address token,
         uint256 amount,
         address feeToken
@@ -309,8 +289,8 @@ contract ZephyraCrossChainTransfer is OwnerIsCreator {
         });
 
         return Client.EVM2AnyMessage({
-            receiver: abi.encode(receiverContract),
-            data: abi.encode(userWallet, amount),
+            receiver: abi.encode(receiverWallet),
+            data: abi.encode(receiverWallet, amount),
             tokenAmounts: tokenAmounts,
             extraArgs: Client._argsToBytes(
                 Client.EVMExtraArgsV1({gasLimit: 200_000})
@@ -405,24 +385,16 @@ contract ZephyraCrossChainTransfer is OwnerIsCreator {
     
     /// @notice Get the estimated fee for sending a message to a destination chain.
     /// @dev This function calculates the fee required to send a message to a destination chain.
-    /// @param _destinationChainSelector The selector of the destination chain.
-    /// @param _zephyraReceiver The address of the Zephyra receiver contract on the destination chain.
-    /// @param _userWallet The actual user wallet to receive funds.
-    /// @param _amount The amount of tokens to be transferred.
-    /// @param payInLink Whether to pay the fees in LINK tokens or native gas.
-    /// @return The estimated fee in wei.
 
 
     function getEstimatedFee(
         uint64 _destinationChainSelector,
-        address _zephyraReceiver,   // Receiver contract on the destination chain
-        address _userWallet,        // The actual user wallet to receive funds
+        address _receiverWallet,        
         uint256 _amount,
         bool payInLink
     ) external view returns (uint256) {
         Client.EVM2AnyMessage memory message = _buildCCIPMessage(
-            _zephyraReceiver,
-            _userWallet,
+            _receiverWallet,
             address(i_zusd),
             _amount,
             payInLink ? address(i_linkToken) : address(0)
